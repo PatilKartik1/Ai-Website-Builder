@@ -29,24 +29,24 @@ const PromptInput = ({onSubmit, loading = false, placeholder = "Describe the web
 
 if(variant === "glass"){
     return (
-        <form onSubmit={handleSubmit} className='max-w-2xl w-full bg-[#F5F5F5] rounded-xl border border-[#E5E5E5] shadow-xs focus-within:border-[#333333] overflow-hidden mt-6 transition'>
+        <form onSubmit={handleSubmit} className='max-w-2xl w-full bg-[#F4F0EA] rounded-xl border border-[#D8D0C5] shadow-xs focus-within:border-[#A37059] overflow-hidden mt-6 transition'>
 
             <textarea ref={textareaRef} value={value} onChange={(e)=>setValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholder} disabled={loading}
-                rows={3} className='w-full p-4 pb-2 resize-none placeholder:text-[#888888] outline-none bg-transparent text-[#171717] text-base'/>
+                rows={3} className='w-full p-4 pb-2 resize-none placeholder:text-[#9E9790] outline-none bg-transparent text-[#2C2A29] text-base'/>
 
             <div className='flex items-center justify-between pb-3 px-3 gap-2'>
-                <label htmlFor="file" className="border border-[#E5E5E5] text-[#666666] hover:text-[#171717] hover:border-[#CCCCCC] p-1.5 rounded-md cursor-pointer flex items-center justify-center">
+                <label htmlFor="file" className="border border-[#D8D0C5] text-[#7A7570] hover:text-[#2C2A29] hover:border-[#BDB2A3] p-1.5 rounded-md cursor-pointer flex items-center justify-center">
                     <input type="file" id='file' hidden/>
                     <CloudUploadIcon size={18}/>
                 </label>
                 <div className='flex items-center justify-end gap-2'>
-                    <button type='button' className="flex items-center justify-center p-1 text-[#666666] hover:text-[#171717] cursor-pointer">
+                    <button type='button' className="flex items-center justify-center p-1 text-[#7A7570] hover:text-[#2C2A29] cursor-pointer">
                         <MicIcon size={18}/>
                     </button>
 
                     <button type='submit' 
                     disabled={!value.trim() || loading}
-                    className="flex items-center justify-center p-1.5 rounded-full bg-[#333333] text-white hover:bg-[#171717] disabled:opacity-40 cursor-pointer transition-colors">
+                    className="flex items-center justify-center p-1.5 rounded-full bg-[#A37059] text-white hover:bg-[#8F5F4A] disabled:opacity-40 cursor-pointer transition-colors">
                         {loading ? <Loader2Icon size={18} className="animate-spin"/> : <ArrowRightIcon size={18}/>}
                     </button>
                 </div>
