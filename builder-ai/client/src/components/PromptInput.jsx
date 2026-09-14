@@ -57,7 +57,7 @@ if(variant === "glass"){
 }
 
   return (
-    <div className={`bg-white border border-zinc-200 rounded-xl flex items-end gap-2 focus-within:ring-1 focus-within:ring-zinc-300 transition ${large ? "p-4" : "p-3"}`}>
+    <div className={`bg-[#DCD3C7] border border-[#C0B4A5] rounded-xl flex items-end gap-2 focus-within:border-[#9C5B42] transition ${large ? "p-4" : "p-3"}`}>
 
         <textarea ref={textareaRef} 
         value={value} 
@@ -66,12 +66,12 @@ if(variant === "glass"){
         placeholder={placeholder} 
         disabled={loading}
         rows={large ? 5 : 1} 
-        className={`flex-1 bg-transparent border-none outline-none resize-none text-zinc-900 placeholder:text-zinc-400 ${large ? "text-base" : "text-sm"}`}/>
+        className={`flex-1 bg-transparent border-none outline-none resize-none text-[#24211E] placeholder:text-[#857C73] ${large ? "text-base" : "text-sm"}`}/>
 
         <button
         onClick={()=> handleSubmit()}
         disabled={!value.trim() || loading}
-        className='inline-flex items-center justify-center bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-40 cursor-pointer rounded-full shrink-0'
+        className='inline-flex items-center justify-center bg-[#9C5B42] text-white hover:bg-[#854B34] disabled:opacity-40 cursor-pointer rounded-full shrink-0 transition-colors'
         style={{
             width: large ? 36 : 24,
              height: large ? 36 : 24,
