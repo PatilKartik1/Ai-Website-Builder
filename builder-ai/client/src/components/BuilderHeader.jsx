@@ -19,7 +19,7 @@ const BuilderHeader = ({
             <button onClick={onBack} className='p-1.5 rounded-md text-zinc-400 hover:text-zinc-950 hover:bg-zinc-100 cursor-pointer'>
                 <ArrowLeftIcon size={16} />
             </button>
-            <img src="/logo.svg" alt="" className="invert size-5" />
+            <img src="/logo.svg" alt="BuilderAI" className="size-5" />
             <span className="text-sm font-semibold truncate max-w-38 md:max-w-50">{projectName}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 font-medium">v{version}</span>
         </div>
