@@ -70,6 +70,18 @@ export async function chat(req, res){
             console.warn(`[Diff] Errors applying operations:`, errors);
         }
 
+        // Archive current snapshot into history before applying revision
+        project.history = project.history || [];
+        project.history.push({
+            version: project.version,
+            description: `Prior to: ${prompt.slice(0, 60)}`,
+            files: project.files,
+            timestamp: new Date(),
+        });
+        if (project.history.length > 15) {
+            project.history = project.history.slice(-15);
+        }
+
         // Update project in DB
         project.files = updatedFiles;
         project.markModified("files");
@@ -99,6 +111,11 @@ export async function chat(req, res){
             applied,
             errors,
             aiDescription: result.description,
+            history: (project.history || []).map((h) => ({
+                version: h.version,
+                description: h.description,
+                timestamp: h.timestamp,
+            })),
         })
 
     } catch (err) {

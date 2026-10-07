@@ -118,6 +118,12 @@ async function runBackgroundGeneration(projectId, prompt){
             if(result.description){
                 project.name = result.description;
             }
+            project.history = [{
+                version: 1,
+                description: "Initial generation",
+                files: project.files,
+                timestamp: new Date(),
+            }];
             project.messages.push({
                 role: "assistant",
                 content: `Website generation complete! You can view and edit the files.`,
@@ -189,6 +195,11 @@ export async function getProject(req, res){
         filesGenerated: project.filesGenerated,
         currentFile: project.currentFile,
         error: project.error,
+        history: (project.history || []).map((h) => ({
+            version: h.version,
+            description: h.description,
+            timestamp: h.timestamp,
+        })),
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
     })
@@ -309,4 +320,80 @@ export async function getPublicProject(req, res){
         version: project.version,
     })
 }
+
+// POST /api/projects/:id/rollback
+// Roll back project files to a previous version
+export async function rollbackProject(req, res) {
+    const { targetVersion } = req.body;
+
+    if (targetVersion === undefined || typeof targetVersion !== "number") {
+        res.status(400).json({ error: "targetVersion (number) is required" });
+        return;
+    }
+
+    if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+
+    const project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
+
+    if (!project) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+    }
+
+    const historyEntry = (project.history || []).find((h) => h.version === targetVersion);
+
+    if (!historyEntry) {
+        res.status(404).json({ error: `Version ${targetVersion} not found in project history` });
+        return;
+    }
+
+    // Archive current state before rolling back
+    project.history = project.history || [];
+    project.history.push({
+        version: project.version,
+        description: `Prior to rollback to v${targetVersion}`,
+        files: project.files,
+        timestamp: new Date(),
+    });
+
+    if (project.history.length > 15) {
+        project.history = project.history.slice(-15);
+    }
+
+    // Restore files from snapshot
+    project.files = historyEntry.files;
+    project.markModified("files");
+    project.version += 1;
+    project.messages.push({
+        role: "assistant",
+        content: `Restored files from version v${targetVersion}. Project is now at version v${project.version}.`,
+        timestamp: new Date(),
+    });
+
+    await project.save();
+
+    const filesObj = {};
+    for (const [path, entry] of Object.entries(project.files)) {
+        filesObj[path] = entry.content;
+    }
+
+    res.json({
+        _id: project._id,
+        name: project.name,
+        description: project.description,
+        files: filesObj,
+        messages: project.messages,
+        version: project.version,
+        status: project.status,
+        history: (project.history || []).map((h) => ({
+            version: h.version,
+            description: h.description,
+            timestamp: h.timestamp,
+        })),
+    });
+}
+
 

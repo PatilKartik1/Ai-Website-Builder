@@ -224,6 +224,20 @@ export function AppContextProvider({children}){
         },[activeProject, user, debouncedSave]
        )
 
+       const handleRollback = useCallback(
+        async (targetVersion) => {
+            if(!activeProject || !user) return;
+            try {
+                const { data } = await api.post(`/api/projects/${activeProject._id}/rollback`, {targetVersion});
+                setActiveProject(data);
+                toast.success(`Restored to version ${targetVersion}`);
+            } catch (err) {
+                console.error("Rollback failed:", err);
+                toast.error(err?.response?.data?.error || "Rollback failed");
+            }
+        },[activeProject, user]
+       )
+
     return (
         <AppContext.Provider value={{
             user,
@@ -246,7 +260,8 @@ export function AppContextProvider({children}){
             handleDelete,
             logout,
             updateProjectFiles,
-            handleChat
+            handleChat,
+            handleRollback
         }}>
             {children}
         </AppContext.Provider>

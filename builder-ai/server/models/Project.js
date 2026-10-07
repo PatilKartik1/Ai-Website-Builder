@@ -11,12 +11,20 @@ const PlannedFileSchema = new Schema({
     description: { type: String, required: true },
 }, {_id: false})
 
+const HistorySchema = new Schema({
+    version: { type: Number, required: true },
+    description: { type: String, default: "" },
+    files: { type: Schema.Types.Mixed, required: true },
+    timestamp: { type: Date, default: Date.now },
+}, { _id: false })
+
 const ProjectSchema = new Schema({
     name: {type: String, required: true, default: "Untitled Project" },
     description: {type: String, default: "" },
     files: { type: Schema.Types.Mixed, default: {} },
     messages: { type: [MessageSchema], default: [] },
     version: { type: Number, default: 0 },
+    history: { type: [HistorySchema], default: [] },
     owner: {type: Schema.Types.ObjectId, ref: "User", required: true},
     published: { type: Boolean, default: false },
     status: {type: String, enum: ["pending", "generating", "revising", "completed", "failed"], default: "pending"},

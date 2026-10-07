@@ -3,6 +3,7 @@ import {SandpackCodeEditor, SandpackLayout, SandpackPreview, SandpackProvider, u
 import { detectDependencies } from '../utils/sandpackUtils';
 import { useAppContext } from '../context/AppContext';
 import SandpackErrorMonitor from './SandpackErrorMonitor';
+import { Monitor, Tablet, Smartphone, RotateCw } from 'lucide-react';
 
 // Watches for file edits inside Sandpack editor and saves changes to DB & live state
 function SandpackFileWatcher({ onLiveFilesChange }){
@@ -44,6 +45,23 @@ function SandpackFileWatcher({ onLiveFilesChange }){
 const PreviewPanel = ({project, activeFile, showCode}) => {
 
     const [showErrorOverlay, setShowErrorOverlay] = useState(true)
+    const [device, setDevice] = useState("desktop");
+    const [orientation, setOrientation] = useState("portrait");
+
+    const dimensions = useMemo(() => {
+        if (device === "desktop") {
+            return { width: "100%", height: "100%", label: "100% • Responsive" };
+        }
+        if (device === "tablet") {
+            return orientation === "portrait"
+                ? { width: "768px", height: "92%", label: "768 × 1024 px" }
+                : { width: "1024px", height: "680px", label: "1024 × 768 px" };
+        }
+        return orientation === "portrait"
+            ? { width: "375px", height: "720px", label: "375 × 740 px" }
+            : { width: "667px", height: "375px", label: "667 × 375 px" };
+    }, [device, orientation]);
+
    // Keep local state of files that updates as user types
    const [liveFiles, setLiveFiles] = useState(project.files);
    const [prevProjectKey, setPrevProjectKey] = useState(`${project._id}-${project.version}`)
@@ -105,28 +123,28 @@ const dependencies = useMemo(()=>{
         }} 
         theme={{
             colors: {
-                surface1: "#E6DFD5",
-                surface2: "#DCD3C7",
-                surface3: "#C0B4A5",
-                clickable: "#635B54",
-                base: "#24211E",
-                disabled: "#857C73",
-                hover: "#24211E",
-                accent: "#9C5B42",
-                error: "#c2410c",
-                errorSurface: "#f3eae4",
+                surface1: "#0b0d13",
+                surface2: "#12151d",
+                surface3: "#1a1f2c",
+                clickable: "#8b949e",
+                base: "#f0f6fc",
+                disabled: "#484f58",
+                hover: "#f0f6fc",
+                accent: "#f59e0b",
+                error: "#f85149",
+                errorSurface: "#211516",
             },
             syntax: {
-                keyword: "#9C5B42",
-                property: "#544D46",
-                plain: "#24211E",
-                static: "#804A35",
-                string: "#6B5B3E",
-                definition: "#24211E",
-                punctuation: "#635B54",
-                tag: "#9C5B42",
+                keyword: "#f59e0b",
+                property: "#79c0ff",
+                plain: "#e6edf3",
+                static: "#ff7b72",
+                string: "#a5d6ff",
+                definition: "#d2a8ff",
+                punctuation: "#8b949e",
+                tag: "#7ee787",
                 comment: {
-                    color: "#857C73",
+                    color: "#6e7681",
                     fontStyle: "italic",
                 },
             },
@@ -148,10 +166,170 @@ const dependencies = useMemo(()=>{
                 background: "transparent",
             }}>
                 {showCode && (
-                    <SandpackCodeEditor showTabs showLineNumbers showInlineErrors wrapContent style={{ height: "100%", flex: 1, minWidth: 0 }}/>
+                    <SandpackCodeEditor
+                        showTabs
+                        showLineNumbers
+                        showInlineErrors
+                        wrapContent
+                        style={{
+                            height: "100%",
+                            flex: 1,
+                            minWidth: 0,
+                            borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+                        }}
+                    />
                 )}
 
-                <SandpackPreview showNavigator={false} showRefreshButton  showOpenInCodeSandbox={false} showSandpackErrorOverlay={showErrorOverlay} style={{ height: "100%", flex: showCode ? 1 : 2, minWidth: 0 }}/>
+                {/* Live Preview Container with Device Controls */}
+                <div
+                    className="flex flex-col h-full overflow-hidden bg-[#07090e]"
+                    style={{ flex: showCode ? 1.2 : 1, minWidth: 0 }}
+                >
+                    {/* Device Toolbar */}
+                    <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b border-white/10 bg-[#090b10]/95 backdrop-blur-md text-xs select-none">
+                        {/* Device Selector */}
+                        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setDevice("desktop")}
+                                title="Desktop (Responsive 100%)"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                                    device === "desktop"
+                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
+                                        : "text-zinc-400 hover:text-zinc-200"
+                                }`}
+                            >
+                                <Monitor size={13} />
+                                <span className="hidden sm:inline">Desktop</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setDevice("tablet")}
+                                title="Tablet Viewport (768px)"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                                    device === "tablet"
+                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
+                                        : "text-zinc-400 hover:text-zinc-200"
+                                }`}
+                            >
+                                <Tablet size={13} />
+                                <span className="hidden sm:inline">Tablet</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setDevice("mobile")}
+                                title="Mobile Viewport (375px)"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                                    device === "mobile"
+                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
+                                        : "text-zinc-400 hover:text-zinc-200"
+                                }`}
+                            >
+                                <Smartphone size={13} />
+                                <span className="hidden sm:inline">Mobile</span>
+                            </button>
+                        </div>
+
+                        {/* Orientation and Resolution Info */}
+                        <div className="flex items-center gap-2">
+                            {device !== "desktop" && (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setOrientation((prev) => (prev === "portrait" ? "landscape" : "portrait"))
+                                    }
+                                    title="Toggle Orientation"
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-zinc-300 hover:text-white hover:bg-white/10 text-[11px] font-medium cursor-pointer transition"
+                                >
+                                    <RotateCw
+                                        size={12}
+                                        className={orientation === "landscape" ? "rotate-90 transition-transform duration-200" : "transition-transform duration-200"}
+                                    />
+                                    <span className="capitalize">{orientation}</span>
+                                </button>
+                            )}
+
+                            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
+                                {dimensions.label}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Canvas Area */}
+                    <div
+                        className={`flex-1 w-full h-full overflow-auto flex items-center justify-center ${
+                            device === "desktop"
+                                ? "p-0 bg-transparent"
+                                : "p-3 sm:p-6 bg-[#040609] bg-[radial-gradient(#181d26_1px,transparent_1px)] [background-size:16px_16px]"
+                        }`}
+                    >
+                        {device === "desktop" ? (
+                            <div className="w-full h-full">
+                                <SandpackPreview
+                                    showNavigator={false}
+                                    showRefreshButton
+                                    showOpenInCodeSandbox={false}
+                                    showSandpackErrorOverlay={showErrorOverlay}
+                                    style={{ height: "100%", width: "100%" }}
+                                />
+                            </div>
+                        ) : device === "tablet" ? (
+                            <div
+                                style={{
+                                    width: dimensions.width,
+                                    height: dimensions.height,
+                                    maxWidth: "100%",
+                                    maxHeight: "100%",
+                                }}
+                                className="relative rounded-2xl border-4 border-zinc-700/80 shadow-2xl overflow-hidden bg-black ring-1 ring-white/15 transition-all duration-300 flex flex-col shrink-0"
+                            >
+                                {/* Tablet Camera */}
+                                <div className="absolute top-1.5 left-1/2 -translate-x-1/2 size-2 bg-zinc-800 rounded-full z-20 pointer-events-none ring-1 ring-white/20" />
+
+                                <div className="flex-1 w-full h-full overflow-hidden">
+                                    <SandpackPreview
+                                        showNavigator={false}
+                                        showRefreshButton
+                                        showOpenInCodeSandbox={false}
+                                        showSandpackErrorOverlay={showErrorOverlay}
+                                        style={{ height: "100%", width: "100%" }}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            /* Mobile Phone Frame */
+                            <div
+                                style={{
+                                    width: dimensions.width,
+                                    height: dimensions.height,
+                                    maxWidth: "100%",
+                                    maxHeight: "96%",
+                                }}
+                                className="relative rounded-[36px] border-4 border-zinc-700/80 shadow-2xl overflow-hidden bg-black ring-1 ring-white/15 transition-all duration-300 flex flex-col shrink-0"
+                            >
+                                {/* Dynamic Island */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-black rounded-full z-20 pointer-events-none flex items-center justify-center ring-1 ring-white/10">
+                                    <div className="size-2 rounded-full bg-zinc-800 ml-auto mr-2" />
+                                </div>
+
+                                <div className="flex-1 w-full h-full overflow-hidden">
+                                    <SandpackPreview
+                                        showNavigator={false}
+                                        showRefreshButton
+                                        showOpenInCodeSandbox={false}
+                                        showSandpackErrorOverlay={showErrorOverlay}
+                                        style={{ height: "100%", width: "100%" }}
+                                    />
+                                </div>
+
+                                {/* Home Bar Indicator */}
+                                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-28 h-1 bg-white/40 rounded-full z-20 pointer-events-none" />
+                            </div>
+                        )}
+                    </div>
+                </div>
             </SandpackLayout>
 
 

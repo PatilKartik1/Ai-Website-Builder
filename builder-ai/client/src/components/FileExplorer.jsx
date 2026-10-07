@@ -40,9 +40,9 @@ function TreeItem({node, activeFile, onFileSelect, depth = 0 }){
     if(node.isDir){
         return (
             <div>
-                <div className="flex items-center gap-2 py-1 px-2 text-xs text-[#635B54] select-none" 
+                <div className="flex items-center gap-2 py-1.5 px-2 text-xs text-zinc-400 select-none font-medium" 
                 style={{paddingLeft: `${depth * 12 + 8}px`}}>
-                    <FolderOpenIcon size={14} className='text-[#24211E] opacity-75'/>
+                    <FolderOpenIcon size={14} className='text-amber-400/90'/>
                     <span>{node.name}</span>
                 </div>
                 {node.children.map((child)=>(
@@ -54,7 +54,7 @@ function TreeItem({node, activeFile, onFileSelect, depth = 0 }){
 
     return (
         <button onClick={()=> onFileSelect(node.path)} 
-        className={`w-full flex items-center gap-2 py-1.5 px-2 text-xs transition-colors rounded-md cursor-pointer ${isActive ? "bg-[#D1C7BA] text-[#24211E] font-semibold" : "text-[#635B54] hover:bg-[#DCD3C7] hover:text-[#24211E]"}`}
+        className={`w-full flex items-center gap-2 py-1.5 px-2 text-xs transition-colors rounded-lg cursor-pointer ${isActive ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium shadow-xs" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200 border border-transparent"}`}
         style={{paddingLeft: `${depth * 12 + 8}px`}}>
             {getFileIcon(node.name)}
             <span className='truncate'>{node.name}</span>
@@ -67,7 +67,7 @@ const FileExplorer = ({files, activeFile, onFileSelect }) => {
     const tree = useMemo(()=> buildTree(Object.keys(files)), [files])
   return (
     <div className="py-2 overflow-y-auto hide-scrollbar">
-        <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#635B54]">Files</p>
+        <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Project Files</p>
             {tree.map((node)=>(
                 <TreeItem key={node.path} node={node} activeFile={activeFile} onFileSelect={onFileSelect}/>
             ))}

@@ -11,8 +11,12 @@
 }
 
 body {
-  background-color: #E6DFD5;
-  color: #24211E;
+  background-color: #0b0d13;
+  background-image: linear-gradient(to bottom, rgba(11, 13, 19, 0.75), rgba(11, 13, 19, 0.85)), url('/sebastian-svenson-d2w-_1LJioQ-unsplash.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #f3f4f6;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -24,8 +28,8 @@ body {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
 
 
@@ -40,7 +44,7 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #18181b;
+  background: #f3f4f6;
   opacity: 0.8;
 }
 

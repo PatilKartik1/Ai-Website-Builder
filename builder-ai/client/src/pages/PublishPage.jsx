@@ -36,13 +36,13 @@ const PublishPage = () => {
 
   if(error || !project){
     return (
-       <div className="h-screen w-screen flex flex-col items-center justify-center bg-zinc-50 px-4 text-center">
-        <div className='w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600 mb-4'>
+       <div className="h-screen w-screen flex flex-col items-center justify-center bg-zinc-950 px-4 text-center">
+        <div className='w-12 h-12 rounded-full bg-red-950/40 border border-red-500/30 flex items-center justify-center text-red-400 mb-4'>
           <AlertCircleIcon size={24} />
         </div>
-        <h1 className='text-lg font-semibold text-zinc-900 mb-1.5'>Website Unavailable</h1>
-        <p className='text-sm text-zinc-500 max-w-sm leading-relaxed mb-6'>{error}</p>
-        <div className='text-[10px] font-semibold uppercase tracking-widest text-zinc-400'>BuilderAI</div>
+        <h1 className='text-lg font-semibold text-white mb-1.5'>Website Unavailable</h1>
+        <p className='text-sm text-zinc-400 max-w-sm leading-relaxed mb-6'>{error}</p>
+        <div className='text-[10px] font-semibold uppercase tracking-widest text-zinc-500'>BuilderAI</div>
       </div>
     )
   }
