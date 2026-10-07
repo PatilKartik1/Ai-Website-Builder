@@ -1,9 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {ArrowRightIcon, CloudUploadIcon, Loader2Icon, MicIcon} from 'lucide-react'
 
-const PromptInput = ({onSubmit, loading = false, placeholder = "Describe the website you want to build...", large = false, autoFocus = false, variant = "default"}) => {
+const PromptInput = ({
+    onSubmit,
+    loading = false,
+    placeholder = "Describe the website you want to build...",
+    large = false,
+    autoFocus = false,
+    variant = "default",
+    value: controlledValue,
+    onChange: controlledOnChange,
+}) => {
 
-    const [value, setValue] = useState("");
+    const [internalValue, setInternalValue] = useState("");
+    const isControlled = controlledValue !== undefined;
+    const value = isControlled ? controlledValue : internalValue;
+    const setValue = isControlled ? controlledOnChange : setInternalValue;
     const textareaRef = useRef(null)
 
     useEffect(()=>{
@@ -11,6 +23,12 @@ const PromptInput = ({onSubmit, loading = false, placeholder = "Describe the web
             textareaRef.current.focus();
         }
     },[autoFocus])
+
+    useEffect(()=>{
+        if(isControlled && controlledValue && textareaRef.current){
+            textareaRef.current.focus();
+        }
+    },[controlledValue, isControlled])
 
     const handleSubmit = (e)=>{
         if(e) e.preventDefault()
