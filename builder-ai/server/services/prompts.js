@@ -7,19 +7,35 @@ Your output must be VISUALLY STUNNING. If the design looks generic, plain, or te
 
 ---
 
-## INTENT RECOGNITION: INTERACTIVE APPLICATION / GAME vs MARKETING LANDING PAGE
+## PROJECT ARCHETYPE & INTENT RECOGNITION
 
-Before planning or writing code, ALWAYS determine the user's intent:
+Before planning or writing code, ALWAYS determine the project archetype:
 
-1. **Interactive Applications / Games / Tools** (e.g., "Tic Tac Toe game", "Calculator", "Todo app", "Stopwatch", "Counter", "Quiz app", "Weather dashboard", "Unit converter", "Chess", "Expense tracker"):
+1. **Multi-Page Websites** (e.g., "[Multi-Page Website]", prompts asking for multiple pages like "Home, About, Services, Contact", e-commerce stores with catalog & cart, agency portfolios with case studies, blogs):
+   - You MUST build a genuine **MULTI-PAGE APPLICATION** with client-side state routing.
+   - Root `/App.js` holds page routing state: `const [currentPage, setCurrentPage] = useState('home');`
+   - Navbar (`/components/Navbar.js`) renders navigation links for all pages with active page indicators, calling `onNavigate(pageName)`.
+   - Footer (`/components/Footer.js`) also contains navigation links calling `onNavigate(pageName)`.
+   - Create separate, rich page components in `/pages/` (e.g., `/pages/Home.js`, `/pages/About.js`, `/pages/Services.js`, `/pages/Contact.js`).
+   - Every page must accept `onNavigate` so in-page buttons (e.g. "Contact Us", "View Services", "Explore Catalog") navigate smoothly: `onClick={() => onNavigate('contact')}`.
+   - Do NOT use HTML `<a href="/about">` (which breaks inside the sandbox iframe). ALWAYS use buttons or elements with `onClick={() => onNavigate('about')}`.
+
+2. **Web Applications / Dashboards** (e.g., "[Dashboard / Web App]", "Admin panel", "Analytics dashboard", "CRM portal"):
+   - Build a full web application featuring:
+     - Collapsible sidebar navigation (`/components/Sidebar.js`) with active view state: `const [activeTab, setActiveTab] = useState('overview');`
+     - Top bar (`/components/Header.js`) with search bar, notifications, and profile badge.
+     - Modular view components inside `/pages/` (e.g., `/pages/Overview.js`, `/pages/Analytics.js`, `/pages/Customers.js`, `/pages/Settings.js`).
+     - Interactive elements: filter pills, data tables, metrics cards with sparkline/progress bars, action modals.
+
+3. **Single-Page Marketing Landing Pages** (e.g., "[Landing Page]", "Waitlist page", "SaaS landing page"):
+   - Build a full single-page marketing landing page with Hero, Bento Features, Pricing, Testimonials, CTA, and Footer across App.js and modular components in `/components/`.
+
+4. **Interactive Applications / Games / Tools** (e.g., "[Interactive App / Tool]", "Tic Tac Toe game", "Calculator", "Todo app", "Stopwatch", "Counter", "Quiz app", "Weather dashboard", "Unit converter", "Chess", "Expense tracker"):
    - You MUST build the **ACTUAL FULLY FUNCTIONAL INTERACTIVE APPLICATION / GAME**, NOT a marketing landing page promoting it!
-   - **SINGLE FILE RULE FOR SMALL APPS/GAMES**: Build small apps, games, and utilities completely inside /App.js (and /styles.css). Do NOT split small games into multiple component files (like Board.js, Square.js, Header.js)! Put all state, game logic, helper sub-functions, and UI layout directly inside /App.js.
+   - **SINGLE FILE RULE FOR SMALL APPS/GAMES**: Build small apps, games, and utilities completely inside /App.js (and /styles.css). Do NOT split small games into multiple component files! Put all state, game logic, helper sub-functions, and UI layout directly inside /App.js.
    - The primary viewport must feature the live, working app/game UI as the main centerpiece.
    - Include complete state logic (e.g., win/draw detection, turn indicators, score tracking, AI/2-player modes, reset functionality, sound/visual feedback toggles).
-   - Wrap the application in a sleek, agency-grade container with modern UI styling, but DO NOT pollute interactive games or utilities with generic marketing sections like "Pricing", "Testimonials", or "What Users Say".
-
-2. **Marketing / Corporate / SaaS Websites** (e.g., "SaaS landing page", "Agency portfolio", "Restaurant website", "Crypto project site"):
-   - Build a full landing page featuring Hero, Bento Features, Pricing, Testimonials, CTA, and Footer across App.js and modular components in /components/.
+   - Wrap the application in a sleek, agency-grade container with modern UI styling, but DO NOT pollute interactive games or utilities with generic marketing sections like "Pricing" or "Testimonials".
 
 ---
 
@@ -293,11 +309,13 @@ Respond with a JSON object listing every file needed, including their contract o
 Rules:
 - ALWAYS include /App.js
 - ALWAYS include /styles.css for font imports and CSS keyframe animations
-- Match the component plan to the project type:
-  * For SMALL INTERACTIVE APPS / GAMES / TOOLS (e.g., Tic Tac Toe, Calculator, Todo App, Stopwatch, Counter, Quiz App, Unit Converter): Plan ONLY 2 files — /App.js and /styles.css! Do NOT create extra sub-component files in /components/. Write all state, logic, and UI components inside /App.js.
-  * For LARGE MARKETING WEBSITES: Plan /App.js, /styles.css, and landing page section components in /components/ (e.g., /components/Header.js, /components/Hero.js, /components/Features.js, /components/Pricing.js, /components/Footer.js).
+- Match the component plan to the project archetype:
+  * For MULTI-PAGE WEBSITES (e.g. [Multi-Page Website], e-commerce, agency portfolio): Plan /App.js, /styles.css, /components/Navbar.js, /components/Footer.js, and 3 to 4 distinct page components in /pages/ (e.g. /pages/Home.js, /pages/About.js, /pages/Services.js, /pages/Contact.js). Make sure /App.js imports all pages, manages currentPage state, and renders them conditionally based on currentPage.
+  * For WEB APPLICATIONS / DASHBOARDS (e.g. [Dashboard / Web App], admin portal): Plan /App.js, /styles.css, /components/Sidebar.js, /components/Header.js, and 3 to 4 view components in /pages/ (e.g. /pages/Overview.js, /pages/Analytics.js, /pages/Settings.js).
+  * For SINGLE-PAGE MARKETING LANDING PAGES: Plan /App.js, /styles.css, and landing page section components in /components/ (e.g., /components/Header.js, /components/Hero.js, /components/Features.js, /components/Pricing.js, /components/Footer.js).
+  * For SMALL INTERACTIVE APPS / GAMES / TOOLS: Plan ONLY 2 files — /App.js and /styles.css! Write all state, logic, and UI components inside /App.js.
 - Define "exports" indicating what this file will export (e.g., "default Header", "default Button"). Every JS/JSX component file must have EXACTLY ONE default export.
-- Define "imports" listing relative file imports this component relies on from the plan (e.g., ["./components/Header.js", "./styles.css"]).
+- Define "imports" listing relative file imports this component relies on from the plan (e.g., ["./components/Navbar.js", "./pages/Home.js", "./styles.css"]).
 - Each description should be one sentence explaining what that file does
 - Do NOT write any code — only plan the file list`;
 
@@ -335,7 +353,8 @@ CRITICAL: Return ONLY the JSON object. Do NOT wrap it in markdown code fences. D
 Rules:
 - Do NOT include any other files
 - The code must be complete, visually stunning, and production-ready
-- Import other project files using their exact paths (e.g. import Header from './components/Header')
+- Import other project files using their exact paths (e.g. import Navbar from './components/Navbar'; import Home from './pages/Home')
+- MULTI-PAGE NAVIGATION: In Multi-Page sites and Dashboards, /App.js must define client-side state routing (e.g. const [currentPage, setCurrentPage] = useState('home')) and pass onNavigate={setCurrentPage} and currentPage={currentPage} to navigation and page components. In pages and navbars, buttons or links must navigate using onClick={() => onNavigate('targetPage')} rather than <a href> tags.
 - The /styles.css file MUST include: Google Font @import, @keyframes float/fadeInUp/fadeIn, and .animate-* utility classes
 - Apply the full design system defined in the base instructions — premium typography, generous spacing, proper hover effects, and animations`;
 }
