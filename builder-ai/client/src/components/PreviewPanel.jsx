@@ -3,7 +3,7 @@ import {SandpackCodeEditor, SandpackLayout, SandpackPreview, SandpackProvider, u
 import { detectDependencies } from '../utils/sandpackUtils';
 import { useAppContext } from '../context/AppContext';
 import SandpackErrorMonitor from './SandpackErrorMonitor';
-import { Monitor, Tablet, Smartphone, RotateCw } from 'lucide-react';
+import { Monitor, Tablet, Smartphone, RotateCw, AlertTriangle, Sparkles, Loader2, X } from 'lucide-react';
 
 // Watches for file edits inside Sandpack editor and saves changes to DB & live state
 function SandpackFileWatcher({ onLiveFilesChange }){
@@ -44,9 +44,19 @@ function SandpackFileWatcher({ onLiveFilesChange }){
 
 const PreviewPanel = ({project, activeFile, showCode}) => {
 
+    const { handleChat, chatLoading } = useAppContext();
     const [showErrorOverlay, setShowErrorOverlay] = useState(true)
+    const [activeError, setActiveError] = useState(null)
     const [device, setDevice] = useState("desktop");
     const [orientation, setOrientation] = useState("portrait");
+
+    const handleAutoFix = () => {
+        if (!activeError) return;
+        const errorMsg = activeError.message || "Unknown error";
+        const errorPath = activeError.path ? ` in ${activeError.path}` : "";
+        const prompt = `Please fix this compilation/runtime error${errorPath}: "${errorMsg}". Ensure all component imports, exports, and React hooks are properly written and valid.`;
+        handleChat(prompt);
+    };
 
     const dimensions = useMemo(() => {
         if (device === "desktop") {
@@ -157,7 +167,7 @@ const dependencies = useMemo(()=>{
         }}>
 
             <SandpackFileWatcher onLiveFilesChange={handleLiveFilesChange}/>
-            <SandpackErrorMonitor onErrorChange={setShowErrorOverlay}/>
+            <SandpackErrorMonitor onErrorChange={setShowErrorOverlay} onActiveError={setActiveError}/>
             <SandpackLayout
             style={{
                 height: "100%",
@@ -182,7 +192,7 @@ const dependencies = useMemo(()=>{
 
                 {/* Live Preview Container with Device Controls */}
                 <div
-                    className="flex flex-col h-full overflow-hidden bg-[#07090e]"
+                    className="flex flex-col h-full overflow-hidden bg-[#07090e] relative"
                     style={{ flex: showCode ? 1.2 : 1, minWidth: 0 }}
                 >
                     {/* Device Toolbar */}
@@ -329,6 +339,52 @@ const dependencies = useMemo(()=>{
                             </div>
                         )}
                     </div>
+
+                    {/* Auto-Fix Floating Banner */}
+                    {activeError && (
+                        <div className="absolute bottom-4 left-4 right-4 max-w-xl mx-auto bg-[#180e10]/95 border border-red-500/40 rounded-xl p-3 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 z-30">
+                            <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                <AlertTriangle className="size-4 text-red-400 shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
+                                        <span>Sandbox Compile Error</span>
+                                        {activeError.path && (
+                                            <span className="font-mono text-[10px] text-zinc-400 font-normal truncate max-w-44">
+                                                ({activeError.path})
+                                            </span>
+                                        )}
+                                    </p>
+                                    <p className="text-[11px] text-zinc-300 font-mono truncate mt-0.5">
+                                        {activeError.message || "Error rendering React component"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={handleAutoFix}
+                                    disabled={chatLoading}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-semibold rounded-lg text-xs shadow-md transition cursor-pointer disabled:opacity-50"
+                                >
+                                    {chatLoading ? (
+                                        <Loader2 className="size-3.5 animate-spin text-zinc-950" />
+                                    ) : (
+                                        <Sparkles className="size-3.5 text-zinc-950" />
+                                    )}
+                                    <span>Auto-Fix with AI</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveError(null)}
+                                    className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                                    title="Dismiss banner"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </SandpackLayout>
 

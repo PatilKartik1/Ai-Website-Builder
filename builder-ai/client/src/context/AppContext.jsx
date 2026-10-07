@@ -238,6 +238,131 @@ export function AppContextProvider({children}){
         },[activeProject, user]
        )
 
+       const createFile = useCallback(
+        async (rawPath, customContent) => {
+            if(!activeProject || !user) return false;
+
+            let path = rawPath.trim();
+            if(!path) {
+                toast.error("File name cannot be empty");
+                return false;
+            }
+            if(!path.startsWith("/")) path = "/" + path;
+
+            if(activeProject.files && activeProject.files[path] !== undefined){
+                toast.error(`File "${path}" already exists`);
+                return false;
+            }
+
+            let defaultContent = customContent;
+            if(defaultContent === undefined){
+                if(path.endsWith(".css")){
+                    defaultContent = "/* Styles */\n";
+                } else if(path.endsWith(".json")){
+                    defaultContent = "{\n  \n}\n";
+                } else {
+                    const compName = path.split("/").pop().replace(/\.[^/.]+$/, "") || "Component";
+                    const safeCompName = compName.charAt(0).toUpperCase() + compName.slice(1).replace(/[^a-zA-Z0-9]/g, "");
+                    defaultContent = `import React from 'react';\n\nexport default function ${safeCompName}() {\n  return (\n    <div className="p-4">\n      <h2 className="text-xl font-bold">${safeCompName}</h2>\n    </div>\n  );\n}\n`;
+                }
+            }
+
+            const updatedFiles = {
+                ...activeProject.files,
+                [path]: defaultContent,
+            };
+
+            try {
+                await api.put(`/api/projects/${activeProject._id}/files`, { files: updatedFiles });
+                setActiveProject(prev => ({ ...prev, files: updatedFiles }));
+                setActiveFile(path);
+                setShowCode(true);
+                toast.success(`Created ${path}`);
+                return true;
+            } catch (err) {
+                console.error("Failed to create file:", err);
+                toast.error(err?.response?.data?.error || "Failed to create file");
+                return false;
+            }
+        },[activeProject, user]
+       );
+
+       const deleteFile = useCallback(
+        async (path) => {
+            if(!activeProject || !user) return false;
+
+            if(path === "/App.js" || path === "/styles.css"){
+                toast.error("Cannot delete core files (/App.js or /styles.css)");
+                return false;
+            }
+
+            const { [path]: removed, ...remainingFiles } = activeProject.files || {};
+
+            try {
+                await api.put(`/api/projects/${activeProject._id}/files`, { files: remainingFiles });
+                setActiveProject(prev => ({ ...prev, files: remainingFiles }));
+                if(activeFile === path){
+                    setActiveFile(Object.keys(remainingFiles)[0] || "/App.js");
+                }
+                toast.success(`Deleted ${path}`);
+                return true;
+            } catch (err) {
+                console.error("Failed to delete file:", err);
+                toast.error(err?.response?.data?.error || "Failed to delete file");
+                return false;
+            }
+        },[activeProject, user, activeFile]
+       );
+
+       const renameFile = useCallback(
+        async (oldPath, newRawPath) => {
+            if(!activeProject || !user) return false;
+
+            if(oldPath === "/App.js" || oldPath === "/styles.css"){
+                toast.error("Cannot rename core files (/App.js or /styles.css)");
+                return false;
+            }
+
+            let newPath = newRawPath.trim();
+            if(!newPath){
+                toast.error("File name cannot be empty");
+                return false;
+            }
+            if(!newPath.startsWith("/")) newPath = "/" + newPath;
+
+            if(oldPath === newPath) return true;
+
+            if(activeProject.files && activeProject.files[newPath] !== undefined){
+                toast.error(`A file named "${newPath}" already exists`);
+                return false;
+            }
+
+            const fileContent = typeof activeProject.files[oldPath] === "string" 
+                ? activeProject.files[oldPath] 
+                : activeProject.files[oldPath]?.content || "";
+
+            const { [oldPath]: removed, ...remainingFiles } = activeProject.files || {};
+            const updatedFiles = {
+                ...remainingFiles,
+                [newPath]: fileContent,
+            };
+
+            try {
+                await api.put(`/api/projects/${activeProject._id}/files`, { files: updatedFiles });
+                setActiveProject(prev => ({ ...prev, files: updatedFiles }));
+                if(activeFile === oldPath){
+                    setActiveFile(newPath);
+                }
+                toast.success(`Renamed to ${newPath}`);
+                return true;
+            } catch (err) {
+                console.error("Failed to rename file:", err);
+                toast.error(err?.response?.data?.error || "Failed to rename file");
+                return false;
+            }
+        },[activeProject, user, activeFile]
+       );
+
     return (
         <AppContext.Provider value={{
             user,
@@ -261,7 +386,10 @@ export function AppContextProvider({children}){
             logout,
             updateProjectFiles,
             handleChat,
-            handleRollback
+            handleRollback,
+            createFile,
+            deleteFile,
+            renameFile
         }}>
             {children}
         </AppContext.Provider>

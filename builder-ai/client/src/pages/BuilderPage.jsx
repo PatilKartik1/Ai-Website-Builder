@@ -21,7 +21,7 @@ const BuilderPage = () => {
   const [publishing, setPublishing] = useState(false);
   const [publishUrl, setPublishUrl] = useState(null);
 
-  const {activeProject, loadingActiveProject, activeFile, showCode, setActiveFile, setShowCode, loadProject, logout, chatLoading, handleChat, handleRollback} = useAppContext();
+  const {activeProject, loadingActiveProject, activeFile, showCode, setActiveFile, setShowCode, loadProject, logout, chatLoading, handleChat, handleRollback, createFile, deleteFile, renameFile} = useAppContext();
 
 
 
@@ -102,10 +102,17 @@ const BuilderPage = () => {
               leftTab === 'chat' ? (
                 <ChatPanel messages={activeProject.messages} onSend={handleChat} loading={chatLoading}/>
               ) : (
-                <FileExplorer files={activeProject.files} activeFile={activeFile} onFileSelect={(path)=>{
-                  setActiveFile(path);
-                  setShowCode(true)
-                }}/>
+                <FileExplorer
+                  files={activeProject.files}
+                  activeFile={activeFile}
+                  onFileSelect={(path)=>{
+                    setActiveFile(path);
+                    setShowCode(true)
+                  }}
+                  onCreateFile={createFile}
+                  onDeleteFile={deleteFile}
+                  onRenameFile={renameFile}
+                />
               )
             }
 
