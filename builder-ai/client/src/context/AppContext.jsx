@@ -49,7 +49,7 @@ export function AppContextProvider({children}){
             navigate("/")
         } catch (err) {
             console.error("Login failed:", err);
-            const errMsg = err?.response?.data?.error || "Invalid email or password";
+            const errMsg = err?.response?.data?.error || (err?.request ? "Cannot reach the server. Make sure the backend is running." : "Invalid email or password");
              toast.error(errMsg);
              throw new Error(errMsg);
         }
@@ -63,7 +63,7 @@ export function AppContextProvider({children}){
             navigate("/")
         } catch (err) {
             console.error("Registration failed:", err);
-            const errMsg = err?.response?.data?.error || "Registration failed";
+            const errMsg = err?.response?.data?.error || (err?.request ? "Cannot reach the server. Make sure the backend is running." : "Registration failed");
              toast.error(errMsg);
              throw new Error(errMsg);
         }

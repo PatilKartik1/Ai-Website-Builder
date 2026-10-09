@@ -1,44 +1,14 @@
-import { BotIcon, BotMessageSquareIcon, SparklesIcon, UserIcon } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
+import { BotMessageSquareIcon, SparklesIcon, UserIcon, BotIcon } from 'lucide-react'
 import PromptInput from './PromptInput'
 
 const QUICK_SUGGESTIONS = [
-  {
-    label: 'Dark Luxury',
-    icon: '🎨',
-    prompt:
-      'Revamp the color palette into a sleek dark luxury aesthetic with gold accents, deep backgrounds, and elegant typography.',
-  },
-  {
-    label: 'Sticky Mobile Nav',
-    icon: '📱',
-    prompt:
-      'Make the navbar sticky on scroll with a responsive mobile hamburger drawer menu and smooth transitions.',
-  },
-  {
-    label: 'Micro-Animations',
-    icon: '✨',
-    prompt:
-      'Add smooth hover micro-animations, glowing card borders, and interactive button hover effects throughout the website.',
-  },
-  {
-    label: 'Contact Form',
-    icon: '📝',
-    prompt:
-      'Add an interactive contact form with fields for Name, Email, Subject, and Message, complete with validation and a success feedback state.',
-  },
-  {
-    label: 'Testimonials',
-    icon: '🌟',
-    prompt:
-      'Add a modern customer reviews and testimonials section with avatars, star ratings, and company badges.',
-  },
-  {
-    label: 'FAQ Accordion',
-    icon: '❓',
-    prompt:
-      'Add a collapsible FAQ accordion section answering common questions with smooth expand/collapse animations.',
-  },
+  { label: 'Dark theme',       icon: '◑', prompt: 'Revamp the color palette into a sleek dark luxury aesthetic with deep backgrounds, gold accents, and premium typography.' },
+  { label: 'Mobile nav',       icon: '≡', prompt: 'Make the navbar sticky on scroll with a responsive mobile hamburger drawer menu and smooth slide-in animation.' },
+  { label: 'Animations',       icon: '✦', prompt: 'Add smooth hover micro-animations, subtle card border glows, and staggered fade-in animations throughout the site.' },
+  { label: 'Contact form',     icon: '□', prompt: 'Add an interactive contact form with Name, Email, Subject, and Message fields with validation and a success state.' },
+  { label: 'Testimonials',     icon: '❝', prompt: 'Add a modern testimonials section with avatar photos, star ratings, quotes, and customer names.' },
+  { label: 'FAQ accordion',    icon: '?', prompt: 'Add a collapsible FAQ section with smooth expand/collapse animations answering common product questions.' },
 ]
 
 const ChatPanel = ({ messages, onSend, loading }) => {
@@ -46,68 +16,76 @@ const ChatPanel = ({ messages, onSend, loading }) => {
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'auto' })
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  const handleChipClick = (prompt) => {
-    setPromptValue(prompt)
-  }
-
+  const handleChipClick = (prompt) => setPromptValue(prompt)
   const handleSend = (text) => {
     onSend(text)
     setPromptValue('')
   }
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5 hide-scrollbar">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <p className="text-zinc-500 text-sm text-center">Ask AI to modify your website</p>
+            <p className="text-xs text-center" style={{ color: 'var(--text-3)' }}>
+              Ask AI to modify your website
+            </p>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i}>
-            <div className="flex gap-2.5 items-start">
-              <div className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5 bg-zinc-800/80 border border-white/10 shadow-xs">
-                {msg.role === 'user' ? (
-                  <UserIcon size={14} className="text-zinc-300" />
-                ) : (
-                  <BotMessageSquareIcon size={14} className="text-amber-400" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-zinc-500 mb-1 uppercase tracking-wider">
-                  {msg.role === 'user' ? 'You' : 'AI'}
-                </p>
-                <div className="text-[13px] text-zinc-200 leading-relaxed tracking-normal whitespace-pre-wrap wrap-break-word">
-                  {msg.content.split('- `/').map((text, idx) => (
-                    <span key={idx} className="block mt-2">
-                      <span className={idx === 0 ? 'hidden' : ''}>- `/</span>
-                      {text}
-                    </span>
-                  ))}
-                </div>
+          <div key={i} className="flex gap-2.5 items-start">
+            {/* Avatar */}
+            <div
+              className="shrink-0 size-6 rounded-md flex items-center justify-center mt-0.5 border"
+              style={{
+                background: msg.role === 'user' ? 'var(--surface-2)' : 'var(--accent-dim)',
+                borderColor: msg.role === 'user' ? 'var(--border)' : 'rgba(139,131,247,0.2)',
+              }}
+            >
+              {msg.role === 'user' ? (
+                <UserIcon size={12} style={{ color: 'var(--text-2)' }} />
+              ) : (
+                <BotMessageSquareIcon size={12} style={{ color: 'var(--accent)' }} />
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>
+                {msg.role === 'user' ? 'You' : 'AI'}
+              </p>
+              <div className="text-[13px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: 'var(--text-1)' }}>
+                {msg.content.split('- `/').map((text, idx) => (
+                  <span key={idx} className="block">
+                    <span className={idx === 0 ? 'hidden' : ''}>- `/</span>
+                    {text}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         ))}
 
+        {/* Loading indicator */}
         {loading && (
           <div className="flex gap-2.5 items-start">
-            <div className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5 bg-zinc-800/80 border border-white/10">
-              <BotIcon size={13} className="text-amber-400" />
+            <div
+              className="shrink-0 size-6 rounded-md flex items-center justify-center mt-0.5 border"
+              style={{ background: 'var(--accent-dim)', borderColor: 'rgba(139,131,247,0.2)' }}
+            >
+              <BotIcon size={12} style={{ color: 'var(--accent)' }} />
             </div>
-            <div className="flex-1">
-              <p className="text-[11px] font-medium text-zinc-500 mb-2 uppercase tracking-wider">
+            <div className="flex-1 pt-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>
                 AI
               </p>
               <div className="dot-loader">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span /><span /><span />
               </div>
             </div>
           </div>
@@ -115,18 +93,16 @@ const ChatPanel = ({ messages, onSend, loading }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Area with Quick Revision Chips */}
-      <div className="p-3 border-t border-white/10 bg-[#090b10]/80 backdrop-blur-md">
-        {/* Chips */}
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-              <SparklesIcon size={10} className="text-amber-400" />
-              <span>Revision Ideas</span>
+      {/* Bottom input area */}
+      <div className="p-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+        {/* Quick chips */}
+        <div className="mb-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1" style={{ color: 'var(--text-3)' }}>
+              <SparklesIcon size={9} style={{ color: 'var(--accent)' }} />
+              Quick edits
             </span>
-            <span className="text-[10px] text-zinc-500">Tap to fill</span>
           </div>
-
           <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
             {QUICK_SUGGESTIONS.map((item, idx) => (
               <button
@@ -134,9 +110,24 @@ const ChatPanel = ({ messages, onSend, loading }) => {
                 type="button"
                 disabled={loading}
                 onClick={() => handleChipClick(item.prompt)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-amber-500/15 border border-white/10 hover:border-amber-500/30 text-zinc-300 hover:text-amber-300 text-[11px] whitespace-nowrap transition cursor-pointer shrink-0 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap transition cursor-pointer shrink-0 disabled:opacity-40 border"
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-2)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent)'
+                  e.currentTarget.style.color = 'var(--accent)'
+                  e.currentTarget.style.background = 'var(--accent-dim)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)'
+                  e.currentTarget.style.color = 'var(--text-2)'
+                  e.currentTarget.style.background = 'var(--surface-2)'
+                }}
               >
-                <span>{item.icon}</span>
+                <span style={{ opacity: 0.7 }}>{item.icon}</span>
                 <span>{item.label}</span>
               </button>
             ))}

@@ -60,16 +60,16 @@ const PreviewPanel = ({project, activeFile, showCode}) => {
 
     const dimensions = useMemo(() => {
         if (device === "desktop") {
-            return { width: "100%", height: "100%", label: "100% • Responsive" };
+            return { width: "100%", height: "100%", label: "Responsive" };
         }
         if (device === "tablet") {
             return orientation === "portrait"
-                ? { width: "768px", height: "92%", label: "768 × 1024 px" }
-                : { width: "1024px", height: "680px", label: "1024 × 768 px" };
+                ? { width: "768px", height: "92%", label: "768 × 1024" }
+                : { width: "1024px", height: "680px", label: "1024 × 768" };
         }
         return orientation === "portrait"
-            ? { width: "375px", height: "720px", label: "375 × 740 px" }
-            : { width: "667px", height: "375px", label: "667 × 375 px" };
+            ? { width: "375px", height: "720px", label: "375 × 740" }
+            : { width: "667px", height: "375px", label: "667 × 375" };
     }, [device, orientation]);
 
    // Keep local state of files that updates as user types
@@ -133,35 +133,32 @@ const dependencies = useMemo(()=>{
         }} 
         theme={{
             colors: {
-                surface1: "#0b0d13",
-                surface2: "#12151d",
-                surface3: "#1a1f2c",
-                clickable: "#8b949e",
-                base: "#f0f6fc",
-                disabled: "#484f58",
-                hover: "#f0f6fc",
-                accent: "#f59e0b",
-                error: "#f85149",
-                errorSurface: "#211516",
+                surface1: "#111116",
+                surface2: "#18181e",
+                surface3: "#1f1f28",
+                clickable: "#7a7a96",
+                base: "#e2e2ee",
+                disabled: "#46465e",
+                hover: "#e2e2ee",
+                accent: "#8b83f7",
+                error: "#f87171",
+                errorSurface: "#1c1010",
             },
             syntax: {
-                keyword: "#f59e0b",
-                property: "#79c0ff",
-                plain: "#e6edf3",
-                static: "#ff7b72",
-                string: "#a5d6ff",
-                definition: "#d2a8ff",
-                punctuation: "#8b949e",
-                tag: "#7ee787",
-                comment: {
-                    color: "#6e7681",
-                    fontStyle: "italic",
-                },
+                keyword:     "#8b83f7",
+                property:    "#67e8f9",
+                plain:       "#e2e2ee",
+                static:      "#fda4af",
+                string:      "#86efac",
+                definition:  "#c4b5fd",
+                punctuation: "#7a7a96",
+                tag:         "#86efac",
+                comment: { color: "#46465e", fontStyle: "italic" },
             },
             font: {
-                body: "'Urbanist', system-ui, -apple-system, sans-serif",
-                mono: "'Geist Mono', ui-monospace, monospace",
-                size: "13px",
+                body:       "'Inter', system-ui, -apple-system, sans-serif",
+                mono:       "'Geist Mono', ui-monospace, monospace",
+                size:       "13px",
                 lineHeight: "1.6",
             }
         }}>
@@ -196,85 +193,48 @@ const dependencies = useMemo(()=>{
                     style={{ flex: showCode ? 1.2 : 1, minWidth: 0 }}
                 >
                     {/* Device Toolbar */}
-                    <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b border-white/10 bg-[#090b10]/95 backdrop-blur-md text-xs select-none">
+                    <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b select-none"
+                        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                         {/* Device Selector */}
-                        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/10">
-                            <button
-                                type="button"
-                                onClick={() => setDevice("desktop")}
-                                title="Desktop (Responsive 100%)"
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                                    device === "desktop"
-                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
-                                        : "text-zinc-400 hover:text-zinc-200"
-                                }`}
-                            >
-                                <Monitor size={13} />
-                                <span className="hidden sm:inline">Desktop</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setDevice("tablet")}
-                                title="Tablet Viewport (768px)"
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                                    device === "tablet"
-                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
-                                        : "text-zinc-400 hover:text-zinc-200"
-                                }`}
-                            >
-                                <Tablet size={13} />
-                                <span className="hidden sm:inline">Tablet</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setDevice("mobile")}
-                                title="Mobile Viewport (375px)"
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                                    device === "mobile"
-                                        ? "bg-amber-500/20 text-amber-300 font-semibold shadow-xs"
-                                        : "text-zinc-400 hover:text-zinc-200"
-                                }`}
-                            >
-                                <Smartphone size={13} />
-                                <span className="hidden sm:inline">Mobile</span>
-                            </button>
+                        <div className="flex items-center gap-0.5 p-0.5 rounded-lg border"
+                            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
+                            {[{id:'desktop',icon:<Monitor size={12}/>,label:'Desktop'},{id:'tablet',icon:<Tablet size={12}/>,label:'Tablet'},{id:'mobile',icon:<Smartphone size={12}/>,label:'Mobile'}].map(({id,icon,label}) => (
+                                <button key={id} type="button" onClick={() => setDevice(id)} title={label}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer"
+                                    style={{
+                                        background: device === id ? 'var(--accent-dim)' : 'transparent',
+                                        color: device === id ? 'var(--accent)' : 'var(--text-3)',
+                                        border: device === id ? '1px solid rgba(139,131,247,0.25)' : '1px solid transparent',
+                                    }}>
+                                    {icon}
+                                    <span className="hidden sm:inline">{label}</span>
+                                </button>
+                            ))}
                         </div>
 
-                        {/* Orientation and Resolution Info */}
+                        {/* Orientation + Resolution */}
                         <div className="flex items-center gap-2">
                             {device !== "desktop" && (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setOrientation((prev) => (prev === "portrait" ? "landscape" : "portrait"))
-                                    }
+                                <button type="button"
+                                    onClick={() => setOrientation((prev) => (prev === "portrait" ? "landscape" : "portrait"))}
                                     title="Toggle Orientation"
-                                    className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-zinc-300 hover:text-white hover:bg-white/10 text-[11px] font-medium cursor-pointer transition"
-                                >
-                                    <RotateCw
-                                        size={12}
-                                        className={orientation === "landscape" ? "rotate-90 transition-transform duration-200" : "transition-transform duration-200"}
-                                    />
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium cursor-pointer transition border"
+                                    style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-2)' }}>
+                                    <RotateCw size={11} className={orientation === "landscape" ? "rotate-90 transition-transform" : "transition-transform"} />
                                     <span className="capitalize">{orientation}</span>
                                 </button>
                             )}
-
-                            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
+                            <span className="text-[11px] font-mono px-2 py-0.5 rounded border"
+                                style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-3)' }}>
                                 {dimensions.label}
                             </span>
                         </div>
                     </div>
 
-                    {/* Canvas Area */}
-                    <div
-                        className={`flex-1 w-full h-full overflow-auto flex items-center justify-center ${
-                            device === "desktop"
-                                ? "p-0 bg-transparent"
-                                : "p-3 sm:p-6 bg-[#040609] bg-[radial-gradient(#181d26_1px,transparent_1px)] [background-size:16px_16px]"
-                        }`}
-                    >
+                    {/* Canvas */}
+                    <div className={`flex-1 w-full h-full overflow-auto flex items-center justify-center ${
+                        device === "desktop" ? "p-0" : "p-4 sm:p-8"
+                    }`} style={device !== 'desktop' ? { background: 'var(--bg)' } : {}}>
                         {device === "desktop" ? (
                             <div className="w-full h-full">
                                 <SandpackPreview
@@ -342,44 +302,36 @@ const dependencies = useMemo(()=>{
 
                     {/* Auto-Fix Floating Banner */}
                     {activeError && (
-                        <div className="absolute bottom-4 left-4 right-4 max-w-xl mx-auto bg-[#180e10]/95 border border-red-500/40 rounded-xl p-3 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 z-30">
+                        <div className="absolute bottom-4 left-4 right-4 max-w-lg mx-auto rounded-xl p-3 shadow-2xl flex items-center justify-between gap-3 z-30 border"
+                            style={{ background: 'var(--surface)', borderColor: 'rgba(248,113,113,0.25)' }}>
                             <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                <AlertTriangle className="size-4 text-red-400 shrink-0 mt-0.5" />
+                                <AlertTriangle className="size-4 shrink-0 mt-0.5" style={{ color: '#f87171' }} />
                                 <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
-                                        <span>Sandbox Compile Error</span>
+                                    <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#fca5a5' }}>
+                                        <span>Compile Error</span>
                                         {activeError.path && (
-                                            <span className="font-mono text-[10px] text-zinc-400 font-normal truncate max-w-44">
+                                            <span className="font-mono text-[10px] truncate max-w-44" style={{ color: 'var(--text-3)' }}>
                                                 ({activeError.path})
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-[11px] text-zinc-300 font-mono truncate mt-0.5">
-                                        {activeError.message || "Error rendering React component"}
+                                    <p className="text-[11px] font-mono truncate mt-0.5" style={{ color: 'var(--text-2)' }}>
+                                        {activeError.message || "Error rendering component"}
                                     </p>
                                 </div>
                             </div>
-
                             <div className="flex items-center gap-1.5 shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={handleAutoFix}
-                                    disabled={chatLoading}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-semibold rounded-lg text-xs shadow-md transition cursor-pointer disabled:opacity-50"
-                                >
-                                    {chatLoading ? (
-                                        <Loader2 className="size-3.5 animate-spin text-zinc-950" />
-                                    ) : (
-                                        <Sparkles className="size-3.5 text-zinc-950" />
-                                    )}
-                                    <span>Auto-Fix with AI</span>
+                                <button type="button" onClick={handleAutoFix} disabled={chatLoading}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                                    style={{ background: 'var(--accent)', color: '#fff' }}>
+                                    {chatLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                                    Auto-Fix
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveError(null)}
-                                    className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                                    title="Dismiss banner"
-                                >
+                                <button type="button" onClick={() => setActiveError(null)}
+                                    className="p-1 rounded-md cursor-pointer transition"
+                                    style={{ color: 'var(--text-3)' }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-1)')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-3)')}>
                                     <X size={14} />
                                 </button>
                             </div>

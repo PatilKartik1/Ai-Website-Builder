@@ -3,54 +3,54 @@ import { useAppContext } from '../context/AppContext'
 import PromptInput from '../components/PromptInput'
 import { homeTags } from '../assets/assets'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRightIcon, ClockIcon, Trash2Icon } from 'lucide-react'
-import moment from "moment";
+import { ArrowRightIcon, ClockIcon, LogOutIcon, Trash2Icon } from 'lucide-react'
+import moment from 'moment'
 
 const PROJECT_TYPES = [
   {
     id: 'multi-page',
-    label: 'Multi-Page Site',
-    icon: '📑',
-    desc: 'Home, About, Services, Contact with navbar routing',
+    label: 'Multi-Page',
+    icon: '⊞',
+    desc: 'Navbar + multiple pages',
     tag: '[Multi-Page Website]',
     placeholder: 'Create a modern agency website with Home, About Us, Services, and Contact pages...',
   },
   {
     id: 'landing',
     label: 'Landing Page',
-    icon: '📄',
-    desc: 'High-converting 1-page marketing site',
+    icon: '◧',
+    desc: 'High-converting single page',
     tag: '[Landing Page]',
     placeholder: 'Create a high-converting SaaS landing page with hero, features, pricing, and FAQ...',
   },
   {
     id: 'dashboard',
-    label: 'Web App / Dashboard',
-    icon: '📊',
-    desc: 'Sidebar navigation with metric cards & data tables',
+    label: 'Dashboard',
+    icon: '▦',
+    desc: 'Sidebar + data panels',
     tag: '[Dashboard / Web App]',
-    placeholder: 'Create an analytics dashboard with sidebar navigation, metric cards, charts, and user table...',
+    placeholder: 'Create an analytics dashboard with sidebar navigation, metric cards, and user table...',
   },
   {
     id: 'tool',
-    label: 'App / Game / Tool',
-    icon: '🎮',
-    desc: 'Interactive calculator, game, quiz, or task manager',
+    label: 'App / Tool',
+    icon: '◈',
+    desc: 'Interactive game or utility',
     tag: '[Interactive App / Tool]',
-    placeholder: 'Create a fully functional interactive calculator, quiz app, or game...',
+    placeholder: 'Create a fully functional calculator, quiz app, or interactive game...',
   },
 ]
 
 const HomePage = () => {
-
   const navigate = useNavigate()
   const [selectedType, setSelectedType] = React.useState('multi-page')
 
-  const {user, projects, loadingProjects, generatingProject, loadProjects, handleGenerate, handleDelete, logout} = useAppContext()
+  const { user, projects, loadingProjects, generatingProject, loadProjects, handleGenerate, handleDelete, logout } =
+    useAppContext()
 
-  useEffect(()=>{
+  useEffect(() => {
     loadProjects()
-  },[loadProjects])
+  }, [loadProjects])
 
   const currentTypeConfig = PROJECT_TYPES.find((t) => t.id === selectedType) || PROJECT_TYPES[0]
 
@@ -63,137 +63,189 @@ const HomePage = () => {
   }
 
   return (
-    <div className="h-screen overflow-y-scroll text-zinc-100 font-sans bg-transparent">
-        {/* Nav */}
-        <nav className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-[#090b10]/60 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-2">
-              <img src="/logo.svg" alt="logo" className='size-6'/>
-              <span className='text-xl font-semibold tracking-tight text-white'>BuilderAI</span>
-          </div>
-          <div className='flex items-center gap-4 text-sm font-medium text-zinc-400'>
-            <span className="text-zinc-200">{user?.name}</span>
-            <button onClick={logout} className='py-1.5 px-3 border border-white/15 text-zinc-300 hover:text-white hover:bg-white/10 text-xs rounded-lg cursor-pointer bg-white/5 transition'>
-              Sign out
-            </button>
-          </div>
-        </nav>
+    <div className="min-h-screen text-[var(--text-1)] font-sans" style={{ background: 'var(--bg)' }}>
 
-        {/* Hero */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 mt-8 xl:mt-24">
-          <div className="w-full max-w-2xl flex flex-col items-center">
-              {/* Promo Badge */}
-              <div className='flex items-center gap-2 p-1.5 pr-3.5 bg-zinc-900/80 backdrop-blur-md rounded-full border border-white/10 text-[13px] text-zinc-300 shadow-lg shadow-black/20'>
-                <span className='px-3 py-0.5 text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-medium tracking-wider'>PROMO</span>
-                <span>Create your first project for free.</span>
+      {/* Nav */}
+      <nav className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.svg" alt="logo" className="size-5 opacity-90" />
+          <span className="text-[15px] font-semibold tracking-tight text-[var(--text-1)]">BuilderAI</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[var(--text-2)]">{user?.name}</span>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 text-xs text-[var(--text-2)] hover:text-[var(--text-1)] transition-colors cursor-pointer"
+          >
+            <LogOutIcon size={13} />
+            Sign out
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <div className="flex flex-col items-center justify-center px-6 pt-16 pb-24">
+        <div className="w-full max-w-xl flex flex-col items-center">
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--border-md)] bg-[var(--surface)] text-xs text-[var(--text-2)] mb-8">
+            <span className="size-1.5 rounded-full bg-[var(--accent)] glow-pulse inline-block" />
+            AI-powered website generation
+          </div>
+
+          {/* Title */}
+          <h1 className="text-center text-[2.6rem] md:text-5xl font-semibold tracking-tight text-[var(--text-1)] leading-[1.1] mb-4">
+            Build your website<br />
+            <span style={{ color: 'var(--accent)' }}>with a single prompt</span>
+          </h1>
+          <p className="text-center text-sm text-[var(--text-2)] max-w-sm leading-relaxed mb-8">
+            Describe your idea and watch AI design, structure and launch your React site instantly.
+          </p>
+
+          {/* Project Type Selector */}
+          <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            {PROJECT_TYPES.map((type) => {
+              const isSelected = selectedType === type.id
+              return (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setSelectedType(type.id)}
+                  className="flex flex-col items-start p-3 rounded-xl border transition-all cursor-pointer text-left"
+                  style={{
+                    background: isSelected ? 'var(--accent-dim)' : 'var(--surface)',
+                    borderColor: isSelected ? 'var(--accent)' : 'var(--border)',
+                    opacity: isSelected ? 1 : 0.8,
+                  }}
+                >
+                  <span className="text-base mb-1.5 opacity-75">{type.icon}</span>
+                  <span
+                    className="text-xs font-medium leading-tight"
+                    style={{ color: isSelected ? 'var(--accent)' : 'var(--text-1)' }}
+                  >
+                    {type.label}
+                  </span>
+                  <span className="text-[10px] mt-0.5 hidden sm:block" style={{ color: 'var(--text-3)' }}>
+                    {type.desc}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Prompt Input */}
+          <div className="w-full">
+            <PromptInput
+              onSubmit={onGenerateSubmit}
+              loading={generatingProject}
+              placeholder={currentTypeConfig.placeholder}
+              variant="glass"
+              autoFocus
+            />
+          </div>
+
+          {/* Marquee Tags */}
+          <div className="masked-marquee w-full mt-5 max-w-xl overflow-hidden py-1">
+            <div className="animate-marquee gap-2.5">
+              {homeTags.map((tag, i) => (
+                <button
+                  key={i}
+                  onClick={() => onTagClick(tag)}
+                  disabled={generatingProject}
+                  className="px-3.5 py-1.5 rounded-full text-xs border transition cursor-pointer shrink-0 disabled:opacity-40"
+                  style={{
+                    background: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text-2)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.color = 'var(--accent)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.color = 'var(--text-2)'
+                  }}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Projects List */}
+          {!loadingProjects && projects.length > 0 && (
+            <div className="mt-16 w-full">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>
+                  Recent Projects
+                </p>
+                <span className="text-[11px]" style={{ color: 'var(--text-3)' }}>
+                  {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+                </span>
               </div>
 
-              {/* Title */}
-              <h1 className='text-center text-4xl md:text-6xl font-medium mt-5 max-w-2xl text-white tracking-tight'>
-                Let's build your app together
-              </h1>
-              <p className='text-center text-sm md:text-base max-w-xl mt-4 text-zinc-400 leading-relaxed'> 
-                Describe your idea and watch AI design, structure and launch your website instantly. No coding required.
-              </p>
-
-              {/* Project Archetype Selector */}
-              <div className="w-full mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {PROJECT_TYPES.map((type) => {
-                  const isSelected = selectedType === type.id
-                  return (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() => setSelectedType(type.id)}
-                      className={`flex flex-col items-center sm:items-start text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-amber-500/15 border-amber-500/50 shadow-lg shadow-amber-500/10 text-white'
-                          : 'bg-zinc-900/60 hover:bg-zinc-900 border-white/10 hover:border-white/20 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-medium text-xs">
-                        <span>{type.icon}</span>
-                        <span className={isSelected ? 'text-amber-300 font-semibold' : ''}>
-                          {type.label}
+              <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-0.5">
+                {projects.map((p) => (
+                  <div
+                    key={p._id}
+                    onClick={() => navigate(`/builder/${p._id}`)}
+                    className="group flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition-all"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-md)'
+                      e.currentTarget.style.background = 'var(--surface-2)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--surface)'
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>
+                        {p.name}
+                      </p>
+                      <div className="flex items-center gap-2.5 mt-0.5">
+                        <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-3)' }}>
+                          <ClockIcon size={10} />
+                          {moment(p.updatedAt || p.createdAt).fromNow()}
+                        </span>
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded font-mono border"
+                          style={{ color: 'var(--text-3)', borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+                        >
+                          v{p.version}
                         </span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 truncate mt-0.5 hidden sm:block w-full">
-                        {type.desc}
-                      </p>
-                    </button>
-                  )
-                })}
-              </div>
+                    </div>
 
-              {/* Prompt input with glassmorphic variant */}
-              <div className='w-full mt-3'>
-                <PromptInput 
-                onSubmit={onGenerateSubmit}
-                loading={generatingProject}
-                placeholder={currentTypeConfig.placeholder}
-                variant='glass'
-                autoFocus/>
-              </div>
-
-              {/* Scrolling Marquee tags */}
-              <div className="masked-marquee w-full mt-5 max-w-2xl overflow-hidden py-1">
-                  <div className="animate-marquee gap-3">
-                      {homeTags.map((tag, i)=>(
-                        <button key={i}
-                        onClick={()=> onTagClick(tag)}
-                        disabled={generatingProject}
-                        className='px-4 py-1.5 border rounded-full text-sm text-zinc-300 bg-zinc-900/70 border-white/10 hover:border-amber-500/40 hover:bg-zinc-800 hover:text-white transition cursor-pointer shrink-0 font-medium backdrop-blur-md'>
-                          {tag}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(p._id)
+                        }}
+                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                        style={{ color: 'var(--text-2)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#f87171')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-2)')}
+                      >
+                        <Trash2Icon size={13} />
+                      </button>
+                      <ArrowRightIcon
+                        size={14}
+                        className="transition-colors group-hover:opacity-100 opacity-30"
+                        style={{ color: 'var(--accent)' }}
+                      />
+                    </div>
                   </div>
+                ))}
               </div>
+            </div>
+          )}
 
-              {/* All Projects */}
-              {!loadingProjects && projects.length > 0 && (
-                <div className="mt-14 w-full">
-
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-                      <p className='text-xs font-semibold uppercase text-zinc-400 tracking-widest'>All Projects</p>
-                      <span className='text-xs text-zinc-500 font-normal'>
-                        {projects.length} {projects.length === 1 ? "project" : "projects"}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5 max-h-[80vh] overflow-y-auto pr-1">
-                      {projects.map((p)=>(
-                        <div key={p._id} className='bg-zinc-900/70 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between group hover:border-amber-500/50 hover:bg-zinc-900/95 cursor-pointer backdrop-blur-xl transition-all shadow-sm' 
-                        onClick={()=> navigate(`/builder/${p._id}`)}>
-                            <div className="flex-1 min-w-0">
-                               <p className="text-sm font-medium text-zinc-100 group-hover:text-white truncate">{p.name}</p>
-                                <div className="flex items-center gap-3 mt-0.5">
-                                   <span className="text-xs text-zinc-400 flex items-center gap-1">
-                                     <ClockIcon size={11}/>
-                                     {moment(p.updatedAt || p.createdAt).fromNow() }
-                                   </span>
-                                   <span className="text-[11px] px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-zinc-400 font-medium">v{p.version}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <button 
-                                onClick={(e)=>{
-                                  e.stopPropagation();
-                                  handleDelete(p._id)
-                                }}
-                                className='p-1.5 rounded-md text-zinc-400 hover:text-red-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity'>
-                                  <Trash2Icon size={14}/>
-                                </button>
-                                <ArrowRightIcon size={14} className="text-zinc-500 group-hover:text-amber-400 transition-colors"/>
-                            </div>
-                        </div>
-                      ))}
-                    </div>
-                </div>
-              )}
-              
-
-          </div>
         </div>
+      </div>
     </div>
   )
 }
