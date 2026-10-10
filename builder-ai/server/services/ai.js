@@ -3,13 +3,16 @@ import { generateObject } from 'ai';
 import pMap from "p-map";
 import { FileCodeSchema, FilePlanSchema, RevisionResultSchema } from './aiSchemas.js';
 import { buildFileCodeSystem, FILE_PLAN_SYSTEM, REVISE_SYSTEM } from './prompts.js';
-import { el } from 'zod/v4/locales';
 import { normalizeContent } from './contentNormalizer.js';
 import { validateAndFixCode, validateRevisionContent } from './codeValidator.js';
+import { validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
 
 // --- OpenRouter Model Client Setup ---
 const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
-const MAX_CONCURRENCY = parseInt(process.env.AI_MAX_CONCURRENCY || "6", 10)
+const requestedConcurrency = Number.parseInt(process.env.AI_MAX_CONCURRENCY || "3", 10);
+const MAX_CONCURRENCY = Number.isInteger(requestedConcurrency) && requestedConcurrency >= 1
+    ? Math.min(requestedConcurrency, 4)
+    : 3;
 
 const openrouter = createOpenAI({
     baseURL: "https://openrouter.ai/api/v1",
@@ -63,6 +66,19 @@ export async function generateProject(prompt, callbacks){
         prompt: `Plan a React website for: ${prompt}`,
         maxRetries: 2,
     });
+
+    if (!Array.isArray(plan.files) || plan.files.length > MAX_PROJECT_FILES) {
+        throw new Error(`The AI plan must contain no more than ${MAX_PROJECT_FILES} files.`);
+    }
+
+    const normalizedPaths = new Set();
+    for (const file of plan.files) {
+        if (typeof file.path !== "string") throw new Error("The AI plan contains an invalid file path.");
+        if (!file.path.startsWith("/")) file.path = "/" + file.path;
+        if (!validateProjectPath(file.path)) throw new Error(`The AI plan contains an unsafe file path: ${file.path}`);
+        if (normalizedPaths.has(file.path)) throw new Error(`The AI plan contains a duplicate file path: ${file.path}`);
+        normalizedPaths.add(file.path);
+    }
 
     if(!plan.files.find((f)=> f.path === "/App.js")){
         plan.files.unshift({
@@ -137,31 +153,13 @@ export async function generateProject(prompt, callbacks){
          pendingFiles = failedFiles;
     }
 
-    if(pendingFiles.length > 0){
-        const failedPaths = pendingFiles.map((f)=>f.path).join(", ");
-        console.error(`[AI] Failed to generate ${pendingFiles.length} files after all retry rounds: ${failedPaths}`);
-
-        for (const file of pendingFiles) {
-            const normalizedPath = file.path.startsWith("/") ? file.path : "/" + file.path;
-            const ext = normalizedPath.split(".").pop()?.toLowerCase();
-
-            if(ext === "css"){
-                files[normalizedPath] = `/* ${file.description} - Generation failed, please retry */\n`
-            }else{
-                files[normalizedPath] = "import React from 'react';\n\n" + 
-                `// This file could not be generated. Please retry.\n` +
-                `// Purpose: ${file.description}\n\n` + 
-                "export default function Placeholder() {\n" +
-                "  return (\n" +
-                    "    <div className='p-8 text-center text-zinc-400'>\n" +
-                    "      <p>Component failed to generate. Please try again.</p>\n" +
-                    "    </div>\n" +
-                    "  );\n" +
-                    "}\n";
-            }
-        }
-
+    if (pendingFiles.length > 0) {
+        const failedPaths = pendingFiles.map((f) => f.path).join(", ");
+        throw new Error(`Failed to generate required files after retries: ${failedPaths}`);
     }
+
+    const validationError = validateProjectFiles(files);
+    if (validationError) throw new Error(validationError);
 
     if(!files["/App.js"]){
         throw new Error("AI did not generate /App.js entry point");
