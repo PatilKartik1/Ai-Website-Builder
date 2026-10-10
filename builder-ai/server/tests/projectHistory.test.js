@@ -31,3 +31,18 @@ test("keeps recent versions within the entry limit", () => {
     assert.equal(history.at(-1).version, 25);
     assert.equal(new Set(history.map((entry) => entry.version)).size, history.length);
 });
+
+test("normalizes duplicate version labels in legacy history", () => {
+    const history = [
+        { version: 1, description: "old", files: { "/App.js": { content: "old", hash: "a" } } },
+        { version: 2, description: "second", files: { "/App.js": { content: "second", hash: "b" } } },
+        { version: 1, description: "latest v1", files: { "/App.js": { content: "latest", hash: "c" } } },
+    ];
+
+    const normalized = saveHistorySnapshot(history, 3, {
+        "/App.js": { content: "v3", hash: "d" },
+    }, "v3");
+
+    assert.equal(normalized.filter((entry) => entry.version === 1).length, 1);
+    assert.equal(normalized.find((entry) => entry.version === 1).files["/App.js"].content, "latest");
+});
