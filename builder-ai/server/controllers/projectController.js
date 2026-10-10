@@ -116,6 +116,15 @@ async function runBackgroundGeneration(projectId, prompt) {
         const project = await Project.findById(projectId);
         if (!project) return;
 
+        // Persist the final validated/repair-pass output, not only the
+        // intermediate files written by onFileComplete during generation.
+        project.files = Object.fromEntries(
+            Object.entries(result.files || {}).map(([path, code]) => [
+                path,
+                { content: code, hash: hashContent(code) },
+            ])
+        );
+        project.markModified("files");
         project.status = "completed";
         project.version = 1;
         project.filesRevision = (project.filesRevision ?? 0) + 1;
