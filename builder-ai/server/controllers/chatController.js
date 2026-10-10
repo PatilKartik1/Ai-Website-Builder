@@ -78,6 +78,7 @@ export async function chat(req, res) {
         claimed.files = updatedFiles;
         claimed.markModified("files");
         claimed.version += 1;
+        claimed.filesRevision = (claimed.filesRevision ?? 0) + 1;
         claimed.history = saveHistorySnapshot(
             claimed.history,
             claimed.version,
@@ -103,6 +104,7 @@ export async function chat(req, res) {
             files: filesObj,
             messages: claimed.messages,
             version: claimed.version,
+            filesRevision: claimed.filesRevision ?? 0,
             status: claimed.status,
             applied,
             errors,
