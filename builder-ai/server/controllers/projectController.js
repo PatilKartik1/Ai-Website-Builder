@@ -49,6 +49,8 @@ export async function createProject(req, res) {
         files: {},
         messages: project.messages,
         version: project.version,
+        filesRevision: project.filesRevision ?? 0,
+        filesRevision: project.filesRevision ?? 0,
         status: project.status,
         filesPlanned: project.filesPlanned,
         filesGenerated: project.filesGenerated,
@@ -117,6 +119,7 @@ async function runBackgroundGeneration(projectId, prompt) {
 
         project.status = "completed";
         project.version = 1;
+        project.filesRevision = (project.filesRevision ?? 0) + 1;
         if (result.projectName) project.name = result.projectName;
         project.history = saveHistorySnapshot(
             project.history,
@@ -172,6 +175,7 @@ export async function getProject(req, res) {
         files: filesObj,
         messages: project.messages,
         version: project.version,
+        filesRevision: project.filesRevision ?? 0,
         status: project.status,
         filesPlanned: project.filesPlanned,
         filesGenerated: project.filesGenerated,
@@ -197,31 +201,53 @@ export async function deleteProject(req, res) {
 
 // PUT /api/projects/:id/files
 export async function updateProjectFiles(req, res) {
-    const { files } = req.body ?? {};
+    const { files, expectedFilesRevision } = req.body ?? {};
     const validationError = validateProjectFiles(files);
     if (validationError) return res.status(400).json({ error: validationError });
+    if (!Number.isInteger(expectedFilesRevision) || expectedFilesRevision < 0) {
+        return res.status(400).json({ error: "expectedFilesRevision must be a non-negative integer." });
+    }
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-    const project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
-    if (!project) return res.status(404).json({ error: "Project not found" });
+    const ownerFilter = { _id: req.params.id, owner: req.user.userId };
+    const existing = await Project.findOne(ownerFilter, { _id: 1, status: 1, filesRevision: 1 });
+    if (!existing) return res.status(404).json({ error: "Project not found" });
+    if (existing.status !== "completed") {
+        return res.status(409).json({ error: "This project is busy. Wait for the current operation to finish before saving files." });
+    }
 
     const newFiles = {};
     for (const [path, content] of Object.entries(files)) {
         newFiles[path] = { content, hash: hashContent(content) };
     }
 
-    project.files = newFiles;
-    project.markModified("files");
-    await project.save();
+    // Compare-and-swap: only one writer can save against a given revision.
+    // The $exists branch supports documents created before filesRevision existed.
+    const revisionFilter = expectedFilesRevision === 0
+        ? { $or: [{ filesRevision: 0 }, { filesRevision: { $exists: false } }] }
+        : { filesRevision: expectedFilesRevision };
+    const project = await Project.findOneAndUpdate(
+        { ...ownerFilter, status: "completed", ...revisionFilter },
+        { $set: { files: newFiles }, $inc: { filesRevision: 1 } },
+        { new: true, runValidators: true }
+    );
+
+    if (!project) {
+        return res.status(409).json({
+            error: "These files are based on an outdated project revision. Reload the project before saving again.",
+            code: "STALE_FILES_REVISION",
+        });
+    }
 
     const filesObj = {};
-    for (const [path, entry] of Object.entries(project.files)) filesObj[path] = entry.content;
+    for (const [path, entry] of Object.entries(project.files || {})) filesObj[path] = entry.content;
 
     return res.json({
         _id: project._id,
         name: project.name,
         description: project.description,
         files: filesObj,
+        filesRevision: project.filesRevision,
         messages: project.messages,
         version: project.version,
         createdAt: project.createdAt,
@@ -294,6 +320,7 @@ export async function rollbackProject(req, res) {
     project.files = restoredFiles;
     project.markModified("files");
     project.version += 1;
+    project.filesRevision = (project.filesRevision ?? 0) + 1;
     project.history = saveHistorySnapshot(
         project.history,
         project.version,
@@ -318,6 +345,7 @@ export async function rollbackProject(req, res) {
         files: filesObj,
         messages: project.messages,
         version: project.version,
+        filesRevision: project.filesRevision ?? 0,
         status: project.status,
         history: (project.history || []).map((h) => ({
             version: h.version,
