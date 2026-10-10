@@ -24,6 +24,8 @@ export function AppContextProvider({children}){
      const [generatingProject, setGeneratingProject] = useState(false);
      const [activeFile, setActiveFile] = useState("/App.js");
      const [showCode, setShowCode] = useState(false);
+     const filesRevisionRef = React.useRef(0);
+     const saveConflictRef = React.useRef(false);
 
       // Auth Actions
       const checkSession = async ()=>{
@@ -105,6 +107,8 @@ export function AppContextProvider({children}){
             try {
                 const { data } = await api.get(`/api/projects/${id}`)
                  setActiveProject(data);
+                 filesRevisionRef.current = data.filesRevision ?? 0;
+                 saveConflictRef.current = false;
 
                  // Default file selection
                  const files = Object.keys(data.files);
@@ -188,7 +192,24 @@ export function AppContextProvider({children}){
        const persistFiles = useCallback((id, files) => {
             const request = saveQueue.current
                 .catch(() => {})
-                .then(() => api.put(`/api/projects/${id}/files`, { files }));
+                .then(async () => {
+                    if (saveConflictRef.current) {
+                        throw new Error("This project changed elsewhere. Reload the project before saving more edits.");
+                    }
+                    try {
+                        const { data } = await api.put(`/api/projects/${id}/files`, {
+                            files,
+                            expectedFilesRevision: filesRevisionRef.current,
+                        });
+                        filesRevisionRef.current = data.filesRevision;
+                        return data;
+                    } catch (err) {
+                        if (err?.response?.data?.code === "STALE_FILES_REVISION") {
+                            saveConflictRef.current = true;
+                        }
+                        throw err;
+                    }
+                });
             saveQueue.current = request.catch(() => {});
             return request;
        }, []);
@@ -233,6 +254,7 @@ export function AppContextProvider({children}){
                 await flushPendingSaves();
                 const { data } = await api.post(`/api/projects/${activeProject._id}/chat`, {prompt});
                 setActiveProject(data)
+                filesRevisionRef.current = data.filesRevision ?? filesRevisionRef.current;
                 if(data.errors && data.errors.length > 0){
                      toast.error(`${data.errors.length} revision patch(es) failed`);
                 }else{
@@ -254,6 +276,7 @@ export function AppContextProvider({children}){
                 await flushPendingSaves();
                 const { data } = await api.post(`/api/projects/${activeProject._id}/rollback`, {targetVersion});
                 setActiveProject(data);
+                filesRevisionRef.current = data.filesRevision ?? filesRevisionRef.current;
                 toast.success(`Restored to version ${targetVersion}`);
             } catch (err) {
                 console.error("Rollback failed:", err);

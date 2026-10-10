@@ -1,6 +1,6 @@
 import { Project } from "../models/Project.js";
-import { reviseProject } from "../services/ai.js";
-import { applyOperations, validateProjectFiles } from "../services/diff.js";
+import { repairProjectImports, reviseProject } from "../services/ai.js";
+import { applyOperations, hashContent, validateProjectFiles } from "../services/diff.js";
 import { saveHistorySnapshot } from "../services/projectHistory.js";
 
 const MAX_PROMPT_CHARS = 4000;
@@ -66,6 +66,14 @@ export async function chat(req, res) {
         const validationError = validateProjectFiles(plainFiles);
         if (validationError) throw new Error(validationError);
 
+        const importValidatedFiles = await repairProjectImports(plainFiles, claimed.description);
+        const finalFiles = Object.fromEntries(
+            Object.entries(importValidatedFiles).map(([path, content]) => [
+                path,
+                { content, hash: hashContent(content) },
+            ])
+        );
+
         // Record the resulting version as well as preserving one snapshot per
         // version. Revisions no longer create ambiguous duplicate version labels.
         claimed.history = saveHistorySnapshot(
@@ -75,9 +83,10 @@ export async function chat(req, res) {
             `Before revision: ${prompt.trim().slice(0, 60)}`
         );
 
-        claimed.files = updatedFiles;
+        claimed.files = finalFiles;
         claimed.markModified("files");
         claimed.version += 1;
+        claimed.filesRevision = (claimed.filesRevision ?? 0) + 1;
         claimed.history = saveHistorySnapshot(
             claimed.history,
             claimed.version,
@@ -103,6 +112,7 @@ export async function chat(req, res) {
             files: filesObj,
             messages: claimed.messages,
             version: claimed.version,
+            filesRevision: claimed.filesRevision ?? 0,
             status: claimed.status,
             applied,
             errors,
