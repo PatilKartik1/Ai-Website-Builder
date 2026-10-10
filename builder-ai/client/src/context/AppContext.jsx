@@ -25,6 +25,7 @@ export function AppContextProvider({children}){
      const [activeFile, setActiveFile] = useState("/App.js");
      const [showCode, setShowCode] = useState(false);
      const filesRevisionRef = React.useRef(0);
+     const saveConflictRef = React.useRef(false);
 
       // Auth Actions
       const checkSession = async ()=>{
@@ -107,6 +108,7 @@ export function AppContextProvider({children}){
                 const { data } = await api.get(`/api/projects/${id}`)
                  setActiveProject(data);
                  filesRevisionRef.current = data.filesRevision ?? 0;
+                 saveConflictRef.current = false;
 
                  // Default file selection
                  const files = Object.keys(data.files);
@@ -191,12 +193,22 @@ export function AppContextProvider({children}){
             const request = saveQueue.current
                 .catch(() => {})
                 .then(async () => {
-                    const { data } = await api.put(`/api/projects/${id}/files`, {
-                        files,
-                        expectedFilesRevision: filesRevisionRef.current,
-                    });
-                    filesRevisionRef.current = data.filesRevision;
-                    return data;
+                    if (saveConflictRef.current) {
+                        throw new Error("This project changed elsewhere. Reload the project before saving more edits.");
+                    }
+                    try {
+                        const { data } = await api.put(`/api/projects/${id}/files`, {
+                            files,
+                            expectedFilesRevision: filesRevisionRef.current,
+                        });
+                        filesRevisionRef.current = data.filesRevision;
+                        return data;
+                    } catch (err) {
+                        if (err?.response?.data?.code === "STALE_FILES_REVISION") {
+                            saveConflictRef.current = true;
+                        }
+                        throw err;
+                    }
                 });
             saveQueue.current = request.catch(() => {});
             return request;
