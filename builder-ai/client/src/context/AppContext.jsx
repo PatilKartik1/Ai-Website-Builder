@@ -181,11 +181,56 @@ export function AppContextProvider({children}){
         },[user]
        )
 
+       // Serialize all file writes so an older autosave cannot finish after and
+       // overwrite a newer save, file operation, rollback, or AI revision.
+       const saveQueue = React.useRef(Promise.resolve());
+
+       const persistFiles = useCallback((id, files) => {
+            const request = saveQueue.current
+                .catch(() => {})
+                .then(() => api.put(`/api/projects/${id}/files`, { files }));
+            saveQueue.current = request.catch(() => {});
+            return request;
+       }, []);
+
+       const debouncedSave = React.useMemo(
+        () => debounce(async (files, id) => {
+            try {
+                await persistFiles(id, files);
+            } catch (err) {
+                console.error("Failed to auto-save files:", err);
+                toast.error(err?.response?.data?.error || "Failed to save code modifications");
+            }
+        }, 1000),
+        [persistFiles],
+       );
+
+       const flushPendingSaves = useCallback(async () => {
+            // flush() starts the pending debounced write immediately; the queue
+            // then lets us wait for all writes already in progress.
+            debouncedSave.flush();
+            await saveQueue.current;
+       }, [debouncedSave]);
+
+       useEffect(() => {
+            return () => {
+                debouncedSave.flush();
+            };
+       }, [debouncedSave]);
+
+       const updateProjectFiles = useCallback(
+        (files) => {
+            if(!activeProject || !user) return;
+            debouncedSave(files, activeProject._id);
+        },[activeProject, user, debouncedSave]
+       );
+
        const handleChat = useCallback(
         async (prompt)=>{
             if(!activeProject || !user) return;
             setChatLoading(true)
             try {
+                await flushPendingSaves();
                 const { data } = await api.post(`/api/projects/${activeProject._id}/chat`, {prompt});
                 setActiveProject(data)
                 if(data.errors && data.errors.length > 0){
@@ -199,37 +244,14 @@ export function AppContextProvider({children}){
             }finally{
                 setChatLoading(false)
             }
-        },[activeProject, user]
-       )
-
-       const debouncedSave = React.useMemo(
-        ()=>debounce(async (files, id) => {
-            try {
-                await api.put(`/api/projects/${id}/files`, {files})
-            } catch (err) {
-                console.error("Failed to auto-save files:", err);
-                toast.error("Failed to save code modifications");
-            }
-        }, 1000),[],
-       )
-
-       useEffect(()=>{
-        return ()=>{
-            debouncedSave.flush();
-        }
-       },[debouncedSave])
-
-       const updateProjectFiles = useCallback(
-        async (files) => {
-            if(!activeProject || !user) return;
-            debouncedSave(files, activeProject._id)
-        },[activeProject, user, debouncedSave]
+        },[activeProject, user, flushPendingSaves]
        )
 
        const handleRollback = useCallback(
         async (targetVersion) => {
             if(!activeProject || !user) return;
             try {
+                await flushPendingSaves();
                 const { data } = await api.post(`/api/projects/${activeProject._id}/rollback`, {targetVersion});
                 setActiveProject(data);
                 toast.success(`Restored to version ${targetVersion}`);
@@ -237,7 +259,7 @@ export function AppContextProvider({children}){
                 console.error("Rollback failed:", err);
                 toast.error(err?.response?.data?.error || "Rollback failed");
             }
-        },[activeProject, user]
+        },[activeProject, user, flushPendingSaves]
        )
 
        const createFile = useCallback(
@@ -275,7 +297,8 @@ export function AppContextProvider({children}){
             };
 
             try {
-                await api.put(`/api/projects/${activeProject._id}/files`, { files: updatedFiles });
+                await flushPendingSaves();
+                await persistFiles(activeProject._id, updatedFiles);
                 setActiveProject(prev => ({ ...prev, files: updatedFiles }));
                 setActiveFile(path);
                 setShowCode(true);
@@ -286,7 +309,7 @@ export function AppContextProvider({children}){
                 toast.error(err?.response?.data?.error || "Failed to create file");
                 return false;
             }
-        },[activeProject, user]
+        },[activeProject, user, flushPendingSaves, persistFiles]
        );
 
        const deleteFile = useCallback(
@@ -301,7 +324,8 @@ export function AppContextProvider({children}){
             const { [path]: removed, ...remainingFiles } = activeProject.files || {};
 
             try {
-                await api.put(`/api/projects/${activeProject._id}/files`, { files: remainingFiles });
+                await flushPendingSaves();
+                await persistFiles(activeProject._id, remainingFiles);
                 setActiveProject(prev => ({ ...prev, files: remainingFiles }));
                 if(activeFile === path){
                     setActiveFile(Object.keys(remainingFiles)[0] || "/App.js");
@@ -313,7 +337,7 @@ export function AppContextProvider({children}){
                 toast.error(err?.response?.data?.error || "Failed to delete file");
                 return false;
             }
-        },[activeProject, user, activeFile]
+        },[activeProject, user, activeFile, flushPendingSaves, persistFiles]
        );
 
        const renameFile = useCallback(
@@ -362,7 +386,7 @@ export function AppContextProvider({children}){
                 toast.error(err?.response?.data?.error || "Failed to rename file");
                 return false;
             }
-        },[activeProject, user, activeFile]
+        },[activeProject, user, activeFile, flushPendingSaves, persistFiles]
        );
 
     return (
