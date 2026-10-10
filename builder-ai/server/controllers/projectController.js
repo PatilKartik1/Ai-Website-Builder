@@ -50,7 +50,6 @@ export async function createProject(req, res) {
         messages: project.messages,
         version: project.version,
         filesRevision: project.filesRevision ?? 0,
-        filesRevision: project.filesRevision ?? 0,
         status: project.status,
         filesPlanned: project.filesPlanned,
         filesGenerated: project.filesGenerated,
