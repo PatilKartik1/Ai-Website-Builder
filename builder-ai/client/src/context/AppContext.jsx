@@ -124,7 +124,9 @@ export function AppContextProvider({children}){
             }finally{
                 if (!silent) setLoadingActiveProject(false)
             }
-      }
+      }, [user, navigate]);
+
+
 
        // Automatically poll active project status if generating or pending
        useEffect(()=>{
