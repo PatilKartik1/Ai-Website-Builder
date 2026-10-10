@@ -292,13 +292,31 @@ export async function rollbackProject(req, res) {
     }
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-    const project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
+    let project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
     if (!project) return res.status(404).json({ error: "Project not found" });
+    if (project.status !== "completed") {
+        return res.status(409).json({ error: "Wait for the current project operation to finish before rolling back." });
+    }
 
-    // Older documents may contain duplicate labels; prefer the most recent snapshot.
+    // Validate the target before claiming the project so an invalid version
+    // cannot leave it stuck in the revising state.
     const historyEntry = (project.history || []).filter((h) => h.version === targetVersion).at(-1);
     if (!historyEntry) {
         return res.status(404).json({ error: `Version ${targetVersion} not found in project history.` });
+    }
+
+    // Claim the project atomically. This blocks saves and AI revisions while
+    // rollback is restoring files, and rejects a stale read of project history.
+    const revisionFilter = (project.filesRevision ?? 0) === 0
+        ? { $or: [{ filesRevision: 0 }, { filesRevision: { $exists: false } }] }
+        : { filesRevision: project.filesRevision };
+    project = await Project.findOneAndUpdate(
+        { _id: project._id, owner: req.user.userId, status: "completed", ...revisionFilter },
+        { $set: { status: "revising" } },
+        { new: true }
+    );
+    if (!project) {
+        return res.status(409).json({ error: "The project changed before rollback started. Reload it and try again." });
     }
 
     // Preserve any manual edits made since the last recorded snapshot, then
@@ -331,6 +349,7 @@ export async function rollbackProject(req, res) {
         content: `Restored files from version v${targetVersion}. Project is now at version v${project.version}.`,
         timestamp: new Date(),
     });
+    project.status = "completed";
 
     await project.save();
 
