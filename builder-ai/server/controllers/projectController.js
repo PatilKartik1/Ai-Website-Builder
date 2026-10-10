@@ -61,6 +61,8 @@ export async function createProject(req, res) {
 async function runBackgroundGeneration(projectId, prompt) {
     try {
         console.log(`[Background AI] Starting generation for project ${projectId}`);
+        // Serialize file persistence because the AI generator may produce files concurrently.
+        let fileSaveQueue = Promise.resolve();
         const result = await generateProject(prompt, {
             onPlan: async (plan) => {
                 const fileList = plan.files.map((f) => `- \`${f.path}\`: ${f.description}`).join("\n");
@@ -80,29 +82,33 @@ async function runBackgroundGeneration(projectId, prompt) {
             onFileStart: async (path) => {
                 await Project.findByIdAndUpdate(projectId, { currentFile: path });
             },
-            onFileComplete: async (path, code) => {
-                const project = await Project.findById(projectId);
-                if (!project) return;
+            onFileComplete: (path, code) => {
+                fileSaveQueue = fileSaveQueue.catch(() => {}).then(async () => {
+                    const project = await Project.findById(projectId);
+                    if (!project) return;
 
-                const candidate = {};
-                for (const [existingPath, entry] of Object.entries(project.files || {})) {
-                    candidate[existingPath] = entry.content;
-                }
-                candidate[path] = code;
-                const validationError = validateProjectFiles(candidate);
-                if (validationError) throw new Error(validationError);
+                    const candidate = {};
+                    for (const [existingPath, entry] of Object.entries(project.files || {})) {
+                        candidate[existingPath] = entry.content;
+                    }
+                    candidate[path] = code;
+                    const validationError = validateProjectFiles(candidate);
+                    if (validationError) throw new Error(validationError);
 
-                project.files = project.files || {};
-                project.files[path] = { content: code, hash: hashContent(code) };
-                project.filesGenerated = [...(project.filesGenerated || []), path];
-                project.messages.push({
-                    role: "assistant",
-                    content: `Created file "${path}"`,
-                    timestamp: new Date(),
+                    project.files = project.files || {};
+                    project.files[path] = { content: code, hash: hashContent(code) };
+                    project.filesGenerated = [...(project.filesGenerated || []), path];
+                    project.messages.push({
+                        role: "assistant",
+                        content: `Created file "${path}"`,
+                        timestamp: new Date(),
+                    });
+                    project.currentFile = null;
+                    project.markModified("files");
+                    await project.save();
                 });
-                project.currentFile = null;
-                project.markModified("files");
-                await project.save();
+                return fileSaveQueue;
+            }
             },
         });
 
