@@ -1,127 +1,126 @@
 import { Project } from "../models/Project.js";
 import { reviseProject } from "../services/ai.js";
-import { applyOperations } from "../services/diff.js";
+import { applyOperations, validateProjectFiles } from "../services/diff.js";
 
-export function buildManifest(files){
-    const manifest = [];
-    for (const [path, entry] of Object.entries(files)) {
-        manifest.push({path, hash: entry.hash, size: entry.content.length})
-    }
-    return manifest;
+const MAX_PROMPT_CHARS = 4000;
+
+export function buildManifest(files) {
+    return Object.entries(files || {}).map(([path, entry]) => ({
+        path,
+        hash: entry.hash,
+        size: entry.content.length,
+    }));
 }
 
 // POST /api/projects/:id/chat
-// Send a revision prompt and return updated project.
-export async function chat(req, res){
-    const {prompt} = req.body;
+export async function chat(req, res) {
+    const { prompt } = req.body ?? {};
+    if (typeof prompt !== "string" || !prompt.trim()) {
+        return res.status(400).json({ error: "prompt is required" });
+    }
+    if (prompt.length > MAX_PROMPT_CHARS) {
+        return res.status(413).json({ error: `Prompt must be ${MAX_PROMPT_CHARS} characters or fewer.` });
+    }
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-    if(!prompt || typeof prompt !== "string"){
-        res.status(400).json({ error: "prompt is required" });
-        return;
+    const project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (project.status !== "completed") {
+        return res.status(409).json({ error: "Wait for the current project operation to finish before requesting a revision." });
     }
 
-    if(!req.user){
-        res.status(401).json({ error: "Unauthorized" });
-        return;
+    // Claim the project atomically to prevent two AI revisions starting together.
+    const claimed = await Project.findOneAndUpdate(
+        { _id: project._id, owner: req.user.userId, status: "completed" },
+        {
+            $set: { status: "revising" },
+            $push: { messages: { role: "user", content: prompt.trim(), timestamp: new Date() } },
+        },
+        { returnDocument: "after" }
+    );
+    if (!claimed) {
+        return res.status(409).json({ error: "Another operation has already started for this project. Please try again." });
     }
-
-    const project = await Project.findOne({_id: req.params.id, owner: req.user.userId});
-
-    if(!project){
-        res.status(404).json({ error: "Project not found" });
-        return;
-    }
-
-    // Set status to revising and save user prompt immediately
-    project.status = "revising",
-    project.messages.push({role: "user", content: prompt, timestamp: new Date()});
-    await project.save();
 
     try {
-        // Build compact manifest (path + hash + size) instead of sending all code
-        const manifest = buildManifest(project.files);
-
-        // Include ALL file contents so the AI can do accurate search/replace
+        const manifest = buildManifest(claimed.files);
         const relevantFiles = {};
-        for (const [path, entry] of Object.entries(project.files)) {
+        for (const [path, entry] of Object.entries(claimed.files || {})) {
             relevantFiles[path] = entry.content;
         }
-
-        // Recent messages for context (last 4 max)
-        const recentMessages = project.messages.slice(-4).map((m)=>({
-            role: m.role,
-            content: m.content,
-        }))
+        const recentMessages = (claimed.messages || []).slice(-4).map((message) => ({
+            role: message.role,
+            content: message.content,
+        }));
 
         console.log(
-            `[AI] Revising project ${project._id}: "${prompt.slice(0, 80)}..." ` +
-                `(${manifest.length} files, manifest ~${JSON.stringify(manifest).length} chars)`,
+            `[AI] Revising project ${claimed._id}: "${prompt.trim().slice(0, 80)}..." (${manifest.length} files)`
         );
 
-         // Call AI with manifest + relevant files
-         const result = await reviseProject(prompt, manifest, relevantFiles, recentMessages)
+        const result = await reviseProject(prompt.trim(), manifest, relevantFiles, recentMessages);
+        const { files: updatedFiles, applied, errors } = applyOperations(claimed.files, result.operations);
+        const plainFiles = Object.fromEntries(
+            Object.entries(updatedFiles).map(([path, entry]) => [path, entry.content])
+        );
+        const validationError = validateProjectFiles(plainFiles);
+        if (validationError) throw new Error(validationError);
 
-        console.log(`[AI] Got ${result.operations.length} operations: ${result.description}`); 
-
-        // Apply operations to file map
-        const { files: updatedFiles, applied, errors } = applyOperations(project.files, result.operations)
-
-        if(errors.length > 0){
-            console.warn(`[Diff] Errors applying operations:`, errors);
-        }
-
-        // Archive current snapshot into history before applying revision
-        project.history = project.history || [];
-        project.history.push({
-            version: project.version,
-            description: `Prior to: ${prompt.slice(0, 60)}`,
-            files: project.files,
+        claimed.history = claimed.history || [];
+        claimed.history.push({
+            version: claimed.version,
+            description: `Prior to: ${prompt.trim().slice(0, 60)}`,
+            files: claimed.files,
             timestamp: new Date(),
         });
-        if (project.history.length > 15) {
-            project.history = project.history.slice(-15);
-        }
+        if (claimed.history.length > 15) claimed.history = claimed.history.slice(-15);
 
-        // Update project in DB
-        project.files = updatedFiles;
-        project.markModified("files");
-        project.version += 1;
-        project.status = "completed";
-         project.messages.push({
-           role: "assistant",
-            content: result.description + (errors.length > 0 ? `\n\n Some operations failed: ${errors.join(", ")}` : ""),
-         });
+        claimed.files = updatedFiles;
+        claimed.markModified("files");
+        claimed.version += 1;
+        claimed.status = "completed";
+        claimed.messages.push({
+            role: "assistant",
+            content: result.description + (errors.length ? `\n\nSome operations failed: ${errors.join(", ")}` : ""),
+            timestamp: new Date(),
+        });
 
-         await project.save();
+        await claimed.save();
 
-         // Return updated project
-         const filesObj = {};
-         for (const [path, entry] of Object.entries(project.files)) {
-            filesObj[path] = entry.content;
-        }
+        const filesObj = {};
+        for (const [path, entry] of Object.entries(claimed.files)) filesObj[path] = entry.content;
 
-        res.json({
-            _id: project._id,
-            name: project.name,
-            description: project.description,
+        return res.json({
+            _id: claimed._id,
+            name: claimed.name,
+            description: claimed.description,
             files: filesObj,
-            messages: project.messages,
-            version: project.version,
-            status: project.status,
+            messages: claimed.messages,
+            version: claimed.version,
+            status: claimed.status,
             applied,
             errors,
             aiDescription: result.description,
-            history: (project.history || []).map((h) => ({
+            history: (claimed.history || []).map((h) => ({
                 version: h.version,
                 description: h.description,
                 timestamp: h.timestamp,
             })),
-        })
-
+        });
     } catch (err) {
-        console.error(`[AI Revision Error] ${err.message}`);
-        project.status = "completed";
-         await project.save();
-         res.status(500).json({ error: err.message || "Failed to process revision request" });
+        console.error("[AI Revision Error]", err);
+        await Project.updateOne(
+            { _id: claimed._id, owner: req.user.userId, status: "revising" },
+            {
+                $set: { status: "completed" },
+                $push: {
+                    messages: {
+                        role: "assistant",
+                        content: "The revision failed. Your existing project files were kept unchanged.",
+                        timestamp: new Date(),
+                    },
+                },
+            }
+        );
+        return res.status(500).json({ error: "Failed to process revision request. Your existing files were kept unchanged." });
     }
 }
