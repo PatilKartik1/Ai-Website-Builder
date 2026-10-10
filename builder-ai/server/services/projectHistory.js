@@ -17,7 +17,18 @@ function snapshotSize(snapshot) {
 }
 
 export function saveHistorySnapshot(history, version, files, description = "") {
-    const next = (history || []).filter((entry) => entry.version !== version);
+    // Collapse duplicate version labels left by older releases, keeping the
+    // latest snapshot for each version before writing the new one.
+    const next = [];
+    for (const entry of history || []) {
+        const existingIndex = next.findIndex((item) => item.version === entry.version);
+        if (existingIndex !== -1) next.splice(existingIndex, 1);
+        next.push(entry);
+    }
+
+    const currentVersionIndex = next.findIndex((entry) => entry.version === version);
+    if (currentVersionIndex !== -1) next.splice(currentVersionIndex, 1);
+
     next.push({
         version,
         description,
