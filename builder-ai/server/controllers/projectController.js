@@ -270,7 +270,8 @@ export async function rollbackProject(req, res) {
     const project = await Project.findOne({ _id: req.params.id, owner: req.user.userId });
     if (!project) return res.status(404).json({ error: "Project not found" });
 
-    const historyEntry = (project.history || []).find((h) => h.version === targetVersion);
+    // Older documents may contain duplicate labels; prefer the most recent snapshot.
+    const historyEntry = (project.history || []).filter((h) => h.version === targetVersion).at(-1);
     if (!historyEntry) {
         return res.status(404).json({ error: `Version ${targetVersion} not found in project history.` });
     }
