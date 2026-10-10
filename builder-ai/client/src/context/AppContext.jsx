@@ -374,7 +374,8 @@ export function AppContextProvider({children}){
             };
 
             try {
-                await api.put(`/api/projects/${activeProject._id}/files`, { files: updatedFiles });
+                await flushPendingSaves();
+                await persistFiles(activeProject._id, updatedFiles);
                 setActiveProject(prev => ({ ...prev, files: updatedFiles }));
                 if(activeFile === oldPath){
                     setActiveFile(newPath);
