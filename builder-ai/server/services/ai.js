@@ -5,7 +5,8 @@ import { FileCodeSchema, FilePlanSchema, RevisionResultSchema } from './aiSchema
 import { buildFileCodeSystem, FILE_PLAN_SYSTEM, REVISE_SYSTEM } from './prompts.js';
 import { normalizeContent } from './contentNormalizer.js';
 import { validateAndFixCode, validateRevisionContent } from './codeValidator.js';
-import { validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
+import { applyOperations, hashContent, validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
+import { validateLocalImports } from "./projectValidator.js";
 
 // --- OpenRouter Model Client Setup ---
 const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
@@ -165,7 +166,8 @@ export async function generateProject(prompt, callbacks){
         throw new Error("AI did not generate /App.js entry point");
     }
 
-    return {files, description: plan.projectDescription}
+    const validatedFiles = await repairProjectImports(files, prompt);
+    return {files: validatedFiles, description: plan.projectDescription}
 }
 
 export async function reviseProject(prompt, manifest, relevantFiles, recentMessages){
@@ -239,4 +241,52 @@ export async function reviseProject(prompt, manifest, relevantFiles, recentMessa
         })
     }
     return rawParsed;
+}
+
+
+/**
+ * Validate local imports across the entire project and ask the model for one
+ * focused repair pass if generated files reference missing local modules.
+ */
+export async function repairProjectImports(files, projectDescription = "") {
+    const initialError = validateLocalImports(files);
+    if (!initialError) return files;
+
+    console.warn(`[Validator] ${initialError}. Requesting one focused AI repair pass.`);
+
+    const storedFiles = Object.fromEntries(
+        Object.entries(files).map(([path, content]) => [path, { content, hash: hashContent(content) }])
+    );
+    const manifest = Object.entries(storedFiles).map(([path, entry]) => ({
+        path,
+        hash: entry.hash,
+        size: entry.content.length,
+    }));
+    const repairPrompt = [
+        "Fix only the unresolved local imports listed below.",
+        "For each import, either correct its path to an existing project file or create the missing local module if it is clearly required.",
+        "Do not redesign the website or change unrelated styling, content, or behavior.",
+        "Use the existing file-operation format and preserve all unrelated code.",
+        initialError,
+    ].join("\\n\\n");
+
+    const repair = await reviseProject(repairPrompt, manifest, files, []);
+    const { files: repairedStoredFiles, errors } = applyOperations(storedFiles, repair.operations);
+    const repairedFiles = Object.fromEntries(
+        Object.entries(repairedStoredFiles).map(([path, entry]) => [path, entry.content])
+    );
+
+    const sizeError = validateProjectFiles(repairedFiles);
+    if (sizeError) throw new Error(sizeError);
+
+    const remainingError = validateLocalImports(repairedFiles);
+    if (remainingError) {
+        throw new Error(`AI repair could not resolve all local imports: ${remainingError}`);
+    }
+
+    if (errors.length) {
+        console.warn(`[Validator] Some repair operations were skipped: ${errors.join("; ")}`);
+    }
+    console.log("[Validator] Project local-import validation passed.");
+    return repairedFiles;
 }
