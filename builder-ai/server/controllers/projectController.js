@@ -2,6 +2,7 @@ import { Project } from "../models/Project.js";
 import crypto from "crypto";
 import { generateProject } from "../services/ai.js";
 import { validateProjectFiles } from "../services/diff.js";
+import { saveHistorySnapshot } from "../services/projectHistory.js";
 
 function hashContent(content) {
     return crypto.createHash("sha256").update(content).digest("hex").slice(0, 12);
@@ -117,12 +118,12 @@ async function runBackgroundGeneration(projectId, prompt) {
         project.status = "completed";
         project.version = 1;
         if (result.projectName) project.name = result.projectName;
-        project.history = [{
-            version: 1,
-            description: "Initial generation",
-            files: project.files,
-            timestamp: new Date(),
-        }];
+        project.history = saveHistorySnapshot(
+            project.history,
+            project.version,
+            project.files,
+            "Initial generation"
+        );
         project.messages.push({
             role: "assistant",
             content: "Website generation complete! You can view and edit the files.",
@@ -274,18 +275,30 @@ export async function rollbackProject(req, res) {
         return res.status(404).json({ error: `Version ${targetVersion} not found in project history.` });
     }
 
-    project.history = project.history || [];
-    project.history.push({
-        version: project.version,
-        description: `Prior to rollback to v${targetVersion}`,
-        files: project.files,
-        timestamp: new Date(),
-    });
-    if (project.history.length > 15) project.history = project.history.slice(-15);
+    // Preserve any manual edits made since the last recorded snapshot, then
+    // clone the selected snapshot before mutating the history array.
+    const restoredFiles = Object.fromEntries(
+        Object.entries(historyEntry.files || {}).map(([path, entry]) => [
+            path,
+            typeof entry === "string" ? entry : { ...entry },
+        ])
+    );
+    project.history = saveHistorySnapshot(
+        project.history,
+        project.version,
+        project.files,
+        `Snapshot before rollback to v${targetVersion}`
+    );
 
-    project.files = historyEntry.files;
+    project.files = restoredFiles;
     project.markModified("files");
     project.version += 1;
+    project.history = saveHistorySnapshot(
+        project.history,
+        project.version,
+        project.files,
+        `Restored from v${targetVersion}`
+    );
     project.messages.push({
         role: "assistant",
         content: `Restored files from version v${targetVersion}. Project is now at version v${project.version}.`,
