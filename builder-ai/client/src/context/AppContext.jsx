@@ -97,7 +97,7 @@ export function AppContextProvider({children}){
         }
       }
 
-      const loadProject =  async (id, silent = false)=>{
+      const loadProject = useCallback(async (id, silent = false) => {
         console.log("load project");
         
         if(!user) return;
