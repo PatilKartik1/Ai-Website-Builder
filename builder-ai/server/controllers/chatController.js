@@ -1,6 +1,7 @@
 import { Project } from "../models/Project.js";
 import { reviseProject } from "../services/ai.js";
 import { applyOperations, validateProjectFiles } from "../services/diff.js";
+import { saveHistorySnapshot } from "../services/projectHistory.js";
 
 const MAX_PROMPT_CHARS = 4000;
 
@@ -65,18 +66,24 @@ export async function chat(req, res) {
         const validationError = validateProjectFiles(plainFiles);
         if (validationError) throw new Error(validationError);
 
-        claimed.history = claimed.history || [];
-        claimed.history.push({
-            version: claimed.version,
-            description: `Prior to: ${prompt.trim().slice(0, 60)}`,
-            files: claimed.files,
-            timestamp: new Date(),
-        });
-        if (claimed.history.length > 15) claimed.history = claimed.history.slice(-15);
+        // Record the resulting version as well as preserving one snapshot per
+        // version. Revisions no longer create ambiguous duplicate version labels.
+        claimed.history = saveHistorySnapshot(
+            claimed.history,
+            claimed.version,
+            claimed.files,
+            `Before revision: ${prompt.trim().slice(0, 60)}`
+        );
 
         claimed.files = updatedFiles;
         claimed.markModified("files");
         claimed.version += 1;
+        claimed.history = saveHistorySnapshot(
+            claimed.history,
+            claimed.version,
+            claimed.files,
+            result.description || "AI revision"
+        );
         claimed.status = "completed";
         claimed.messages.push({
             role: "assistant",
