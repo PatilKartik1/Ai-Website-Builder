@@ -108,7 +108,6 @@ async function runBackgroundGeneration(projectId, prompt) {
                     await project.save();
                 });
                 return fileSaveQueue;
-            }
             },
         });
 
