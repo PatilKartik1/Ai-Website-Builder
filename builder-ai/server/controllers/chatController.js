@@ -1,6 +1,6 @@
 import { Project } from "../models/Project.js";
 import { repairProjectImports, reviseProject } from "../services/ai.js";
-import { applyOperations, hashContent, validateProjectFiles } from "../services/diff.js";
+import { applyOperationsStrict, hashContent, validateProjectFiles } from "../services/diff.js";
 import { saveHistorySnapshot } from "../services/projectHistory.js";
 
 const MAX_PROMPT_CHARS = 4000;
@@ -59,7 +59,8 @@ export async function chat(req, res) {
         );
 
         const result = await reviseProject(prompt.trim(), manifest, relevantFiles, recentMessages);
-        const { files: updatedFiles, applied, errors } = applyOperations(claimed.files, result.operations);
+        const { files: updatedFiles, applied, errors } = applyOperationsStrict(claimed.files, result.operations);
+
         const plainFiles = Object.fromEntries(
             Object.entries(updatedFiles).map(([path, entry]) => [path, entry.content])
         );
