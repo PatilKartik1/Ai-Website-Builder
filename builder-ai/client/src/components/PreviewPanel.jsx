@@ -52,9 +52,10 @@ const PreviewPanel = ({project, activeFile, showCode}) => {
 
     const handleAutoFix = () => {
         if (!activeError) return;
+        if (!activeError.fixable) return;
         const errorMsg = activeError.message || "Unknown error";
         const errorPath = activeError.path ? ` in ${activeError.path}` : "";
-        const prompt = `Please fix this compilation/runtime error${errorPath}: "${errorMsg}". Ensure all component imports, exports, and React hooks are properly written and valid.`;
+        const prompt = `Fix this ${activeError.type || "preview"} error${errorPath}: "${errorMsg}". Diagnose the root cause from the project files, make the smallest safe change, preserve existing design and behavior, and do not treat a temporary preview-network failure as a code issue.`;
         handleChat(prompt);
     };
 
@@ -308,7 +309,7 @@ const dependencies = useMemo(()=>{
                                 <AlertTriangle className="size-4 shrink-0 mt-0.5" style={{ color: '#f87171' }} />
                                 <div className="min-w-0">
                                     <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#fca5a5' }}>
-                                        <span>Compile Error</span>
+                                        <span>{activeError.label || 'Preview Error'}</span>
                                         {activeError.path && (
                                             <span className="font-mono text-[10px] truncate max-w-44" style={{ color: 'var(--text-3)' }}>
                                                 ({activeError.path})
@@ -318,15 +319,22 @@ const dependencies = useMemo(()=>{
                                     <p className="text-[11px] font-mono truncate mt-0.5" style={{ color: 'var(--text-2)' }}>
                                         {activeError.message || "Error rendering component"}
                                     </p>
+                                    {activeError.guidance && (
+                                        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: 'var(--text-3)' }}>
+                                            {activeError.guidance}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                                <button type="button" onClick={handleAutoFix} disabled={chatLoading}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-                                    style={{ background: 'var(--accent)', color: '#fff' }}>
-                                    {chatLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                                    Auto-Fix
-                                </button>
+                                {activeError.fixable && (
+                                    <button type="button" onClick={handleAutoFix} disabled={chatLoading}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                                        style={{ background: 'var(--accent)', color: '#fff' }}>
+                                        {chatLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                                        Auto-Fix
+                                    </button>
+                                )}
                                 <button type="button" onClick={() => setActiveError(null)}
                                     className="p-1 rounded-md cursor-pointer transition"
                                     style={{ color: 'var(--text-3)' }}
