@@ -6,13 +6,9 @@ const RESOLVABLE_EXTENSIONS = [
     ".css", ".json", ".scss", ".sass", ".less",
 ];
 
-const JS_IMPORT_PATTERN = /\\b(?:from\\s*|import\\s*\\(\\s*|import\\s*)(["'])(\\.{1,2}\\/[^"'\\n]+)\\1/g;
-const CSS_IMPORT_PATTERN = /@import\\s+(?:url\\(\\s*)?(["'])(\\.{1,2}\\/[^"'\\n)]+)\\1/g;
+const JS_IMPORT_PATTERN = /\b(?:from\s*|import\s*\(\s*|import\s*)(["'])(\.{1,2}\/[^"'\n]+)\1/g;
+const CSS_IMPORT_PATTERN = /@import\s+(?:url\(\s*)?(["'])(\.{1,2}\/[^"'\n)]+)\1/g;
 
-/**
- * Remove JavaScript/CSS comments without mistaking comment markers inside
- * quoted strings or template literals for actual comments.
- */
 function stripComments(source) {
     let output = "";
     let quote = null;
@@ -25,12 +21,10 @@ function stripComments(source) {
         const next = source[i + 1];
 
         if (lineComment) {
-            if (char === "\\n") {
+            if (char === "\n") {
                 lineComment = false;
-                output += "\\n";
-            } else {
-                output += " ";
-            }
+                output += "\n";
+            } else output += " ";
             continue;
         }
 
@@ -39,25 +33,19 @@ function stripComments(source) {
                 output += "  ";
                 i += 1;
                 blockComment = false;
-            } else {
-                output += char === "\\n" ? "\\n" : " ";
-            }
+            } else output += char === "\n" ? "\n" : " ";
             continue;
         }
 
         if (quote) {
             output += char;
-            if (escaped) {
-                escaped = false;
-            } else if (char === "\\\\") {
-                escaped = true;
-            } else if (char === quote) {
-                quote = null;
-            }
+            if (escaped) escaped = false;
+            else if (char === "\\") escaped = true;
+            else if (char === quote) quote = null;
             continue;
         }
 
-        if (char === "'" || char === '"' || char === "`") {
+        if (char === "'" || char === '"' || char.charCodeAt(0) === 96) {
             quote = char;
             output += char;
             continue;
@@ -88,7 +76,6 @@ function hasImportTarget(fromPath, specifier, filePaths) {
     const target = path.posix.normalize(path.posix.join(path.posix.dirname(fromPath), cleanSpecifier));
     const candidates = new Set([target]);
 
-    // Bundlers resolve extensionless local imports and directory index files.
     if (!path.posix.extname(target)) {
         for (const extension of RESOLVABLE_EXTENSIONS) candidates.add(target + extension);
         for (const extension of RESOLVABLE_EXTENSIONS) {
@@ -100,8 +87,8 @@ function hasImportTarget(fromPath, specifier, filePaths) {
 }
 
 /**
- * Check relative imports in JavaScript/TypeScript and CSS source files against
- * the generated project file set. Package imports are intentionally ignored.
+ * Validate relative imports in JS/TS and CSS files against generated files.
+ * Package imports are intentionally ignored.
  */
 export function validateLocalImports(files) {
     const filePaths = new Set(Object.keys(files || {}));
@@ -127,6 +114,6 @@ export function validateLocalImports(files) {
     }
 
     if (missing.length === 0) return null;
-    const details = [...new Set(missing.map(({ filePath, specifier }) => `${filePath} -> ${specifier}`))];
-    return `Project contains unresolved local imports: ${details.join("; ")}`;
+    const details = [...new Set(missing.map(({ filePath, specifier }) => filePath + " -> " + specifier))];
+    return "Project contains unresolved local imports: " + details.join("; ");
 }
