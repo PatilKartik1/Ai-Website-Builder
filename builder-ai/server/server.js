@@ -7,27 +7,35 @@ import authRouter from "./routes/authRoutes.js";
 import projectRouter from "./routes/projectRoutes.js";
 
 function loadConfig() {
-    const required = ["MONGODB_URI", "JWT_SECRET", "ORIGINS", "OPENROUTER_API_KEY"];
-    const missing = required.filter((key) => !process.env[key]?.trim());
+  const required = [
+    "MONGODB_URI",
+    "JWT_SECRET",
+    "ORIGINS",
+    "OPENROUTER_API_KEY",
+  ];
+  const missing = required.filter((key) => !process.env[key]?.trim());
 
-    if (missing.length > 0) {
-        throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
-    }
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}`,
+    );
+  }
 
-    if (process.env.JWT_SECRET.trim().length < 32) {
-        throw new Error("JWT_SECRET must be at least 32 characters long.");
-    }
+  if (process.env.JWT_SECRET.trim().length < 32) {
+    throw new Error("JWT_SECRET must be at least 32 characters long.");
+  }
 
-    const origins = process.env.ORIGINS
-        .split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean);
+  const origins = process.env.ORIGINS.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
-    if (origins.length === 0) {
-        throw new Error("ORIGINS must contain at least one allowed frontend origin.");
-    }
+  if (origins.length === 0) {
+    throw new Error(
+      "ORIGINS must contain at least one allowed frontend origin.",
+    );
+  }
 
-    return { origins };
+  return { origins };
 }
 
 const { origins } = loadConfig();
@@ -46,18 +54,18 @@ app.use("/api/projects", projectRouter);
 
 // Centralized error handler: keep implementation details in server logs.
 app.use((err, _req, res, _next) => {
-    console.error("[Error]", err);
-    if (res.headersSent) return;
+  console.error("[Error]", err);
+  if (res.headersSent) return;
 
-    if (err?.type === "entity.too.large") {
-        return res.status(413).json({ error: "Request body is too large." });
-    }
+  if (err?.type === "entity.too.large") {
+    return res.status(413).json({ error: "Request body is too large." });
+  }
 
-    res.status(500).json({ error: "An unexpected server error occurred." });
+  res.status(500).json({ error: "An unexpected server error occurred." });
 });
 
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
