@@ -1,7 +1,87 @@
 import path from "node:path";
 
-const JS_IMPORT_PATTERN = /\b(?:from\s*|import\s*\(\s*|import\s*)(["'])(\.{1,2}\/[^"'\n]+)\1/g;
-const CSS_IMPORT_PATTERN = /@import\s+(?:url\(\s*)?(["'])(\.{1,2}\/[^"'\n)]+)\1/g;
+const JS_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
+const RESOLVABLE_EXTENSIONS = [
+    ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts",
+    ".css", ".json", ".scss", ".sass", ".less",
+];
+
+const JS_IMPORT_PATTERN = /\\b(?:from\\s*|import\\s*\\(\\s*|import\\s*)(["'])(\\.{1,2}\\/[^"'\\n]+)\\1/g;
+const CSS_IMPORT_PATTERN = /@import\\s+(?:url\\(\\s*)?(["'])(\\.{1,2}\\/[^"'\\n)]+)\\1/g;
+
+/**
+ * Remove JavaScript/CSS comments without mistaking comment markers inside
+ * quoted strings or template literals for actual comments.
+ */
+function stripComments(source) {
+    let output = "";
+    let quote = null;
+    let escaped = false;
+    let lineComment = false;
+    let blockComment = false;
+
+    for (let i = 0; i < source.length; i += 1) {
+        const char = source[i];
+        const next = source[i + 1];
+
+        if (lineComment) {
+            if (char === "\\n") {
+                lineComment = false;
+                output += "\\n";
+            } else {
+                output += " ";
+            }
+            continue;
+        }
+
+        if (blockComment) {
+            if (char === "*" && next === "/") {
+                output += "  ";
+                i += 1;
+                blockComment = false;
+            } else {
+                output += char === "\\n" ? "\\n" : " ";
+            }
+            continue;
+        }
+
+        if (quote) {
+            output += char;
+            if (escaped) {
+                escaped = false;
+            } else if (char === "\\\\") {
+                escaped = true;
+            } else if (char === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (char === "'" || char === '"' || char === "`") {
+            quote = char;
+            output += char;
+            continue;
+        }
+
+        if (char === "/" && next === "/") {
+            output += "  ";
+            i += 1;
+            lineComment = true;
+            continue;
+        }
+
+        if (char === "/" && next === "*") {
+            output += "  ";
+            i += 1;
+            blockComment = true;
+            continue;
+        }
+
+        output += char;
+    }
+
+    return output;
+}
 
 function hasImportTarget(fromPath, specifier, filePaths) {
     const cleanSpecifier = specifier.split(/[?#]/, 1)[0];
@@ -9,18 +89,19 @@ function hasImportTarget(fromPath, specifier, filePaths) {
     const candidates = new Set([target]);
 
     // Bundlers resolve extensionless local imports and directory index files.
-    const extensions = [".js", ".jsx", ".mjs", ".ts", ".tsx", ".css", ".json"];
     if (!path.posix.extname(target)) {
-        for (const extension of extensions) candidates.add(target + extension);
-        for (const extension of extensions) candidates.add(path.posix.join(target, "index" + extension));
+        for (const extension of RESOLVABLE_EXTENSIONS) candidates.add(target + extension);
+        for (const extension of RESOLVABLE_EXTENSIONS) {
+            candidates.add(path.posix.join(target, "index" + extension));
+        }
     }
 
     return [...candidates].some((candidate) => filePaths.has(candidate));
 }
 
 /**
- * Check relative JS/JSX/TS/CSS imports against the generated project file set.
- * Package imports (for example "react" or "lucide-react") are intentionally ignored.
+ * Check relative imports in JavaScript/TypeScript and CSS source files against
+ * the generated project file set. Package imports are intentionally ignored.
  */
 export function validateLocalImports(files) {
     const filePaths = new Set(Object.keys(files || {}));
@@ -28,11 +109,16 @@ export function validateLocalImports(files) {
 
     for (const [filePath, content] of Object.entries(files || {})) {
         if (typeof content !== "string") continue;
-        const isCss = filePath.endsWith(".css");
+
+        const extension = path.posix.extname(filePath).toLowerCase();
+        const isCss = extension === ".css";
+        if (!isCss && !JS_EXTENSIONS.has(extension)) continue;
+
+        const source = stripComments(content);
         const pattern = isCss ? CSS_IMPORT_PATTERN : JS_IMPORT_PATTERN;
         pattern.lastIndex = 0;
 
-        for (const match of content.matchAll(pattern)) {
+        for (const match of source.matchAll(pattern)) {
             const specifier = match[2];
             if (!hasImportTarget(filePath, specifier, filePaths)) {
                 missing.push({ filePath, specifier });
