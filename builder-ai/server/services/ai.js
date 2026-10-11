@@ -5,7 +5,7 @@ import { FileCodeSchema, FilePlanSchema, RevisionResultSchema } from './aiSchema
 import { buildFileCodeSystem, FILE_PLAN_SYSTEM, REVISE_SYSTEM } from './prompts.js';
 import { normalizeContent } from './contentNormalizer.js';
 import { validateAndFixCode, validateRevisionContent } from './codeValidator.js';
-import { applyOperations, hashContent, validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
+import { applyOperationsStrict, hashContent, validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
 import { validateLocalImports } from "./projectValidator.js";
 
 // --- OpenRouter Model Client Setup ---
@@ -271,7 +271,7 @@ export async function repairProjectImports(files, projectDescription = "") {
     ].join("\\n\\n");
 
     const repair = await reviseProject(repairPrompt, manifest, files, []);
-    const { files: repairedStoredFiles, errors } = applyOperations(storedFiles, repair.operations);
+    const { files: repairedStoredFiles } = applyOperationsStrict(storedFiles, repair.operations);
     const repairedFiles = Object.fromEntries(
         Object.entries(repairedStoredFiles).map(([path, entry]) => [path, entry.content])
     );
@@ -284,9 +284,6 @@ export async function repairProjectImports(files, projectDescription = "") {
         throw new Error(`AI repair could not resolve all local imports: ${remainingError}`);
     }
 
-    if (errors.length) {
-        console.warn(`[Validator] Some repair operations were skipped: ${errors.join("; ")}`);
-    }
     console.log("[Validator] Project local-import validation passed.");
     return repairedFiles;
 }

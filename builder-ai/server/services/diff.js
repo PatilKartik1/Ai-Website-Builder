@@ -167,3 +167,15 @@ function searchReplace(content, search, replace) {
 
     return null;
 }
+
+/**
+ * Apply a set of AI operations atomically from the caller's perspective.
+ * If any operation fails, throw and return no partial file set for persistence.
+ */
+export function applyOperationsStrict(currentFiles, operations) {
+    const result = applyOperations(currentFiles, operations);
+    if (result.errors.length > 0) {
+        throw new Error(`AI file operations were not applied completely: ${result.errors.join("; ")}`);
+    }
+    return result;
+}
