@@ -60,6 +60,14 @@ export async function chat(req, res) {
 
         const result = await reviseProject(prompt.trim(), manifest, relevantFiles, recentMessages);
         const { files: updatedFiles, applied, errors } = applyOperations(claimed.files, result.operations);
+
+        // A revision is a single logical operation. If any requested file
+        // operation cannot be applied, reject the entire revision rather than
+        // silently committing a partial result.
+        if (errors.length > 0) {
+            throw new Error(`AI revision contained unapplied operations: ${errors.join("; ")}`);
+        }
+
         const plainFiles = Object.fromEntries(
             Object.entries(updatedFiles).map(([path, entry]) => [path, entry.content])
         );
