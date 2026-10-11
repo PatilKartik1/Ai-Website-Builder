@@ -9,7 +9,7 @@ const RESOLVABLE_EXTENSIONS = [
 const JS_IMPORT_PATTERN = /\b(?:from\s*|import\s*\(\s*|import\s*)(["'])(\.{1,2}\/[^"'\n]+)\1/g;
 const CSS_IMPORT_PATTERN = /@import\s+(?:url\(\s*)?(["'])(\.{1,2}\/[^"'\n)]+)\1/g;
 
-function stripComments(source) {
+function maskNonCode(source) {
     let output = "";
     let quote = null;
     let escaped = false;
@@ -101,11 +101,13 @@ export function validateLocalImports(files) {
         const isCss = extension === ".css";
         if (!isCss && !JS_EXTENSIONS.has(extension)) continue;
 
-        const source = stripComments(content);
+        const maskedSource = maskNonCode(content);
         const pattern = isCss ? CSS_IMPORT_PATTERN : JS_IMPORT_PATTERN;
         pattern.lastIndex = 0;
 
-        for (const match of source.matchAll(pattern)) {
+        for (const match of content.matchAll(pattern)) {
+            // Ignore import-like text that appears inside comments or strings.
+            if (maskedSource[match.index] === " ") continue;
             const specifier = match[2];
             if (!hasImportTarget(filePath, specifier, filePaths)) {
                 missing.push({ filePath, specifier });
