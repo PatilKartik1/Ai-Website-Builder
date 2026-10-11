@@ -43,31 +43,30 @@ test("validates relative CSS imports", () => {
     }), /missing\.css/);
 });
 
-
 test("ignores missing imports inside line and block comments", () => {
     assert.equal(validateLocalImports({
         "/App.js": [
             '// import Missing from "./missing.js";',
             '/* export { default } from "./also-missing.js"; */',
             'export default function App() { return null; }',
-        ].join("\\n"),
+        ].join("\n"),
     }), null);
 });
 
 test("ignores import-like text inside ordinary strings", () => {
     assert.equal(validateLocalImports({
-        "/App.js": 'const example = "import Missing from \\\"./missing.js\\\"";',
+        "/App.js": \`const example = "import Missing from './missing.js'";\`,
     }), null);
 });
 
 test("checks side-effect imports and re-exports", () => {
     assert.match(validateLocalImports({
-        "/App.js": 'import "./setup.js";\\nexport { default } from "./components/Missing.js";',
+        "/App.js": 'import "./setup.js";\nexport { default } from "./components/Missing.js";',
         "/setup.js": "",
-    }), /components\\/Missing\\.js/);
+    }), /components\/Missing\.js/);
 });
 
-test("supports SCSS partials and TypeScript module extensions", () => {
+test("supports SCSS imports and TypeScript module extensions", () => {
     assert.equal(validateLocalImports({
         "/App.tsx": 'import Widget from "./Widget";',
         "/Widget.ts": "export default function Widget() {}",
