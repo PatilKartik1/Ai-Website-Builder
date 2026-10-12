@@ -95,10 +95,10 @@ const BuilderPage = () => {
       />
 
       {/* Main */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {/* Left Sidebar */}
         <div
-          className="w-[300px] shrink-0 flex flex-col border-r"
+          className="w-full h-[42vh] min-h-0 shrink-0 flex flex-col border-b md:border-b-0 md:border-r md:w-[300px] md:h-auto"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
           {/* Tabs */}
@@ -144,7 +144,7 @@ const BuilderPage = () => {
         </div>
 
         {/* Preview / Code Area */}
-        <div className="flex-1 overflow-hidden" style={{ background: 'var(--bg)' }}>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
           {activeProject.status === 'pending' ||
           activeProject.status === 'generating' ||
           activeProject.status === 'failed' ? (
