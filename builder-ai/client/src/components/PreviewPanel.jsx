@@ -42,7 +42,7 @@ function SandpackFileWatcher({ onLiveFilesChange }){
     return null;
 }
 
-const PreviewPanel = ({project, activeFile, showCode}) => {
+const PreviewPanel = ({project, activeFile, showCode, viewMode = showCode ? 'split' : 'preview'}) => {
 
     const { handleChat, chatLoading } = useAppContext();
     const [showErrorOverlay, setShowErrorOverlay] = useState(true)
@@ -173,7 +173,7 @@ const dependencies = useMemo(()=>{
                 borderRadius: 0,
                 background: "transparent",
             }}>
-                {showCode && (
+                {viewMode !== 'preview' && (
                     <SandpackCodeEditor
                         showTabs
                         showLineNumbers
@@ -191,7 +191,7 @@ const dependencies = useMemo(()=>{
                 {/* Live Preview Container with Device Controls */}
                 <div
                     className="flex flex-col h-full overflow-hidden bg-[#07090e] relative"
-                    style={{ flex: showCode ? 1.2 : 1, minWidth: 0 }}
+                    style={{ display: viewMode === 'code' ? 'none' : 'flex', flex: viewMode === 'split' ? 1.2 : 1, minWidth: 0 }}
                 >
                     {/* Device Toolbar */}
                     <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b select-none"

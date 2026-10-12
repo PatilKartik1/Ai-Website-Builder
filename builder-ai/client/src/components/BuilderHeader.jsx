@@ -21,9 +21,9 @@ const BuilderHeader = ({
   saveStatus = "saved",
   history = [],
   onRollback,
-  showCode,
+  viewMode = 'preview',
+  onViewModeChange,
   publishing,
-  onToggleShowCode,
   onOpenPreview,
   onPublish,
   onDownload,
@@ -203,20 +203,30 @@ const BuilderHeader = ({
 
       {/* Right: actions */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <button
-          type="button"
-          aria-label={showCode ? 'Hide code and show preview' : 'Show code editor'}
-          title={showCode ? 'Preview only' : 'Show code'}
-          onClick={onToggleShowCode}
-          className={`${btnBase} ${showCode
-            ? 'border-[var(--accent)] text-[var(--accent)]'
-            : 'border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text-1)] hover:border-[var(--border-md)]'
-          }`}
-          style={showCode ? { background: 'var(--accent-dim)' } : { background: 'transparent' }}
-        >
-          {showCode ? <EyeIcon size={12} /> : <Code2Icon size={12} />}
-          <span className="hidden sm:inline">{showCode ? 'Preview' : 'Code'}</span>
-        </button>
+        <div className="inline-flex items-center gap-0.5 rounded-lg border p-0.5" role="group" aria-label="Workspace view" style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
+          {[
+            { id: 'preview', label: 'Preview', icon: <EyeIcon size={12} /> },
+            { id: 'split', label: 'Split', icon: <Code2Icon size={12} /> },
+            { id: 'code', label: 'Code', icon: <Code2Icon size={12} /> },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => onViewModeChange?.(mode.id)}
+              aria-pressed={viewMode === mode.id}
+              title={`${mode.label} view`}
+              className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors"
+              style={{
+                background: viewMode === mode.id ? 'var(--accent-dim)' : 'transparent',
+                color: viewMode === mode.id ? 'var(--accent)' : 'var(--text-3)',
+                border: viewMode === mode.id ? '1px solid rgba(139,131,247,0.25)' : '1px solid transparent',
+              }}
+            >
+              {mode.icon}
+              <span className="hidden lg:inline">{mode.label}</span>
+            </button>
+          ))}
+        </div>
 
         <button type="button" onClick={onOpenPreview} aria-label="Open preview in new tab" title="Open preview" className={btnGhost} style={{ background: 'transparent' }}>
           <ExternalLinkIcon size={12} />
