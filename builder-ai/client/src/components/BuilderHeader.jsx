@@ -44,7 +44,7 @@ const BuilderHeader = ({
   const sortedHistory = [...(history || [])].sort((a, b) => b.version - a.version)
 
   const btnBase =
-    'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all border'
+    'inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all border'
   const btnGhost =
     `${btnBase} border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text-1)] hover:border-[var(--border-md)]`
     
@@ -194,6 +194,9 @@ const BuilderHeader = ({
       {/* Right: actions */}
       <div className="flex items-center gap-1.5 shrink-0">
         <button
+          type="button"
+          aria-label={showCode ? 'Hide code and show preview' : 'Show code editor'}
+          title={showCode ? 'Preview only' : 'Show code'}
           onClick={onToggleShowCode}
           className={`${btnBase} ${showCode
             ? 'border-[var(--accent)] text-[var(--accent)]'
@@ -202,39 +205,43 @@ const BuilderHeader = ({
           style={showCode ? { background: 'var(--accent-dim)' } : { background: 'transparent' }}
         >
           {showCode ? <EyeIcon size={12} /> : <Code2Icon size={12} />}
-          {showCode ? 'Preview' : 'Code'}
+          <span className="hidden sm:inline">{showCode ? 'Preview' : 'Code'}</span>
         </button>
 
-        <button onClick={onOpenPreview} className={btnGhost} style={{ background: 'transparent' }}>
+        <button type="button" onClick={onOpenPreview} aria-label="Open preview in new tab" title="Open preview" className={btnGhost} style={{ background: 'transparent' }}>
           <ExternalLinkIcon size={12} />
-          Open
+          <span className="hidden sm:inline">Open</span>
         </button>
 
         <button
+          type="button"
+          aria-label="Publish website"
           onClick={onPublish}
           disabled={publishing}
           className={`${btnBase} border-[var(--accent)] cursor-pointer`}
           style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
         >
           {publishing ? <Loader2Icon size={12} className="animate-spin" /> : <GlobeIcon size={12} />}
-          Publish
+          <span className="hidden sm:inline">Publish</span>
         </button>
 
-        <button onClick={onDownload} className={btnGhost} style={{ background: 'transparent' }}>
+        <button type="button" onClick={onDownload} aria-label="Export project" title="Export project" className={btnGhost} style={{ background: 'transparent' }}>
           <DownloadIcon size={12} />
-          Export
+          <span className="hidden sm:inline">Export</span>
         </button>
 
         <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border)' }} />
 
         <button
+          type="button"
           onClick={onLogout}
           className="text-xs cursor-pointer transition-colors px-2 py-1"
           style={{ color: 'var(--text-3)' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-2)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-3)')}
         >
-          Sign out
+          <span className="hidden md:inline">Sign out</span>
+          <span className="md:hidden" aria-hidden="true"><LogOutIcon size={14} /></span>
         </button>
       </div>
     </header>
