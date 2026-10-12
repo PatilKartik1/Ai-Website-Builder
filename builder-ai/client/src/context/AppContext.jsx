@@ -25,6 +25,7 @@ export function AppContextProvider({children}){
      const [activeFile, setActiveFile] = useState("/App.js");
      const [showCode, setShowCode] = useState(false);
      const [saveStatus, setSaveStatus] = useState("saved");
+     const editRevisionRef = React.useRef(0);
      const filesRevisionRef = React.useRef(0);
      const saveConflictRef = React.useRef(false);
 
@@ -198,13 +199,14 @@ export function AppContextProvider({children}){
                         throw new Error("This project changed elsewhere. Reload the project before saving more edits.");
                     }
                     try {
+                        const revisionAtStart = editRevisionRef.current;
                         setSaveStatus("saving");
                         const { data } = await api.put(`/api/projects/${id}/files`, {
                             files,
                             expectedFilesRevision: filesRevisionRef.current,
                         });
                         filesRevisionRef.current = data.filesRevision;
-                        setSaveStatus("saved");
+                        if (revisionAtStart === editRevisionRef.current) setSaveStatus("saved");
                         return data;
                     } catch (err) {
                         setSaveStatus("error");
@@ -246,6 +248,7 @@ export function AppContextProvider({children}){
        const updateProjectFiles = useCallback(
         (files) => {
             if(!activeProject || !user) return;
+            editRevisionRef.current += 1;
             setSaveStatus("pending");
             debouncedSave(files, activeProject._id);
         },[activeProject, user, debouncedSave]
