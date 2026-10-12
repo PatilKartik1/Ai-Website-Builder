@@ -20,6 +20,8 @@ const BuilderPage = () => {
   const [leftTab, setLeftTab] = useState('chat')
   const [publishing, setPublishing] = useState(false)
   const [publishUrl, setPublishUrl] = useState(null)
+  const [sidebarWidth, setSidebarWidth] = useState(300)
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false)
 
   const {
     activeProject,
@@ -43,6 +45,30 @@ const BuilderPage = () => {
     if (!id) return
     loadProject(id)
   }, [id])
+
+  useEffect(() => {
+    if (!isResizingSidebar) return
+
+    const handlePointerMove = (event) => {
+      if (event.clientX < 768) return
+      setSidebarWidth(Math.min(480, Math.max(240, event.clientX)))
+    }
+    const handlePointerUp = () => setIsResizingSidebar(false)
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizingSidebar])
 
   const handleOpenPreview = () => {
     if (!id) return
@@ -100,8 +126,8 @@ const BuilderPage = () => {
       <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {/* Left Sidebar */}
         <div
-          className="w-full h-[42vh] min-h-0 shrink-0 flex flex-col border-b md:border-b-0 md:border-r md:w-[300px] md:h-auto"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          className="w-full h-[42vh] min-h-0 shrink-0 flex flex-col border-b md:border-b-0 md:border-r md:h-auto md:w-[var(--builder-sidebar-width)]"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)', '--builder-sidebar-width': `${sidebarWidth}px` }}
         >
           {/* Tabs */}
           <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
@@ -143,6 +169,30 @@ const BuilderPage = () => {
               />
             )}
           </div>
+        </div>
+
+        <div
+          role="separator"
+          aria-label="Resize sidebar"
+          aria-orientation="vertical"
+          aria-valuemin={240}
+          aria-valuemax={480}
+          aria-valuenow={sidebarWidth}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            if (window.innerWidth < 768) return
+            event.preventDefault()
+            setIsResizingSidebar(true)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft') setSidebarWidth((width) => Math.max(240, width - 16))
+            if (event.key === 'ArrowRight') setSidebarWidth((width) => Math.min(480, width + 16))
+          }}
+          className="hidden md:flex w-1 shrink-0 cursor-col-resize items-center justify-center outline-none transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]"
+          style={{ background: isResizingSidebar ? 'var(--accent)' : 'var(--border)', touchAction: 'none' }}
+          title="Drag to resize sidebar; use arrow keys for fine adjustment"
+        >
+          <span className="h-8 w-px rounded-full bg-white/40" />
         </div>
 
         {/* Preview / Code Area */}
