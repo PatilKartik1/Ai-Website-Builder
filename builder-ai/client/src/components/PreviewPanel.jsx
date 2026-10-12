@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {SandpackCodeEditor, SandpackLayout, SandpackPreview, SandpackProvider, useSandpack} from '@codesandbox/sandpack-react'
 import { detectDependencies } from '../utils/sandpackUtils';
 import { useAppContext } from '../context/AppContext';
+import toast from 'react-hot-toast';
 import SandpackErrorMonitor from './SandpackErrorMonitor';
-import { Monitor, Tablet, Smartphone, RotateCw, AlertTriangle, Sparkles, Loader2, X } from 'lucide-react';
+import { Monitor, Tablet, Smartphone, RotateCw, AlertTriangle, Sparkles, Loader2, X, FileCode2, Copy } from 'lucide-react';
 
 // Watches for file edits inside Sandpack editor and saves changes to DB & live state
 function SandpackFileWatcher({ onLiveFilesChange }){
@@ -194,8 +195,33 @@ const dependencies = useMemo(()=>{
                     style={{ flex: showCode ? 1.2 : 1, minWidth: 0 }}
                 >
                     {/* Device Toolbar */}
-                    <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b select-none"
+                    <div className="min-h-9 shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 border-b select-none"
                         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0 max-w-48 sm:max-w-64" title={activeFile || '/App.js'}>
+                                <FileCode2 size={13} className="shrink-0" style={{ color: 'var(--accent)' }} />
+                                <span className="truncate text-[11px] font-mono" style={{ color: 'var(--text-2)' }}>
+                                    {activeFile || '/App.js'}
+                                </span>
+                                <button
+                                    type="button"
+                                    aria-label="Copy active file path"
+                                    title="Copy file path"
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(activeFile || '/App.js')
+                                            toast.success('File path copied')
+                                        } catch {
+                                            toast.error('Could not copy file path')
+                                        }
+                                    }}
+                                    className="shrink-0 rounded p-1 transition-colors"
+                                    style={{ color: 'var(--text-3)' }}
+                                >
+                                    <Copy size={11} />
+                                </button>
+                            </div>
+                        </div>
                         {/* Device Selector */}
                         <div className="flex items-center gap-0.5 p-0.5 rounded-lg border"
                             style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
