@@ -7,6 +7,7 @@ import { normalizeContent } from './contentNormalizer.js';
 import { validateAndFixCode, validateRevisionContent } from './codeValidator.js';
 import { applyOperationsStrict, hashContent, validateProjectPath, validateProjectFiles, MAX_PROJECT_FILES } from "./diff.js";
 import { validateLocalImports } from "./projectValidator.js";
+import { selectRelevantFiles, MAX_REVISION_CONTEXT_CHARS_LIMIT } from "./revisionContext.js";
 
 // --- OpenRouter Model Client Setup ---
 const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
@@ -172,6 +173,7 @@ export async function generateProject(prompt, callbacks){
 
 export async function reviseProject(prompt, manifest, relevantFiles, recentMessages){
     const contextParts = [];
+    const contextFiles = selectRelevantFiles(prompt, relevantFiles);
 
     contextParts.push("## Current Project Files (manifest)");
     contextParts.push("```");
