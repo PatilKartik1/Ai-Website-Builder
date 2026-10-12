@@ -191,7 +191,7 @@ const dependencies = useMemo(()=>{
                 {/* Live Preview Container with Device Controls */}
                 <div
                     className="flex flex-col h-full overflow-hidden bg-[#07090e] relative"
-                    style={{ flex: viewMode === 'split' ? 1.2 : 1, minWidth: 0 }}
+                    style={{ display: viewMode === 'code' ? 'none' : 'flex', flex: viewMode === 'split' ? 1.2 : 1, minWidth: 0 }}
                 >
                     {/* Device Toolbar */}
                     <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b select-none"
