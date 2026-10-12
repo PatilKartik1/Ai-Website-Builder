@@ -18,6 +18,7 @@ const BuilderPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [leftTab, setLeftTab] = useState('chat')
+  const [viewMode, setViewMode] = useState('preview')
   const [publishing, setPublishing] = useState(false)
   const [publishUrl, setPublishUrl] = useState(null)
   const [sidebarWidth, setSidebarWidth] = useState(300)
@@ -112,9 +113,12 @@ const BuilderPage = () => {
         saveStatus={saveStatus}
         history={activeProject.history}
         onRollback={handleRollback}
-        showCode={showCode}
+        viewMode={viewMode}
+        onViewModeChange={(mode) => {
+          setViewMode(mode)
+          setShowCode(mode !== 'preview')
+        }}
         publishing={publishing}
-        onToggleShowCode={() => setShowCode(!showCode)}
         onOpenPreview={handleOpenPreview}
         onPublish={handlePublish}
         onDownload={handleDownload}
@@ -161,6 +165,7 @@ const BuilderPage = () => {
                 activeFile={activeFile}
                 onFileSelect={(path) => {
                   setActiveFile(path)
+                  setViewMode('code')
                   setShowCode(true)
                 }}
                 onCreateFile={createFile}
@@ -202,7 +207,7 @@ const BuilderPage = () => {
           activeProject.status === 'failed' ? (
             <AgentProgressDashboard project={activeProject} />
           ) : (
-            <PreviewPanel project={activeProject} activeFile={activeFile} showCode={showCode} />
+            <PreviewPanel project={activeProject} activeFile={activeFile} showCode={showCode} viewMode={viewMode} />
           )}
         </div>
       </div>
