@@ -8,6 +8,7 @@ import {
   GlobeIcon,
   HistoryIcon,
   Loader2Icon,
+  LogOutIcon,
   RotateCcwIcon,
   XIcon,
 } from 'lucide-react'
