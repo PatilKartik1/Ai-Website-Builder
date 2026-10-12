@@ -18,6 +18,7 @@ import moment from 'moment'
 const BuilderHeader = ({
   projectName,
   version,
+  saveStatus = "saved",
   history = [],
   onRollback,
   showCode,
@@ -71,6 +72,14 @@ const BuilderHeader = ({
           <img src="/logo.svg" alt="BuilderAI" className="size-4 opacity-70 shrink-0" />
           <span className="text-sm font-medium truncate max-w-36 md:max-w-52" style={{ color: 'var(--text-1)' }}>
             {projectName}
+          </span>
+        </div>
+
+        {/* Save state + Version History */}
+        <div className="hidden sm:flex items-center gap-1 text-[10px] whitespace-nowrap" aria-live="polite" title={{pending: "Changes waiting to save", saving: "Saving changes", saved: "All changes saved", error: "Save failed"}[saveStatus] || "Save status"}>
+          <span className={`size-1.5 rounded-full ${saveStatus === "saved" ? "bg-emerald-400" : saveStatus === "error" ? "bg-red-400" : "bg-amber-400"}`} />
+          <span style={{ color: saveStatus === "error" ? "#f87171" : "var(--text-3)" }}>
+            {{pending: "Unsaved", saving: "Saving…", saved: "Saved", error: "Save failed"}[saveStatus] || "Save status"}
           </span>
         </div>
 

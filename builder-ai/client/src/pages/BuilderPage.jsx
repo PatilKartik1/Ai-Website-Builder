@@ -26,6 +26,7 @@ const BuilderPage = () => {
     loadingActiveProject,
     activeFile,
     showCode,
+    saveStatus,
     setActiveFile,
     setShowCode,
     loadProject,
@@ -82,6 +83,7 @@ const BuilderPage = () => {
       <BuilderHeader
         projectName={activeProject.name}
         version={activeProject.version}
+        saveStatus={saveStatus}
         history={activeProject.history}
         onRollback={handleRollback}
         showCode={showCode}
