@@ -41,6 +41,13 @@ function loadConfig() {
 const { origins } = loadConfig();
 const app = express();
 
+// Render terminates public traffic at a reverse proxy. Trust that single
+// proxy hop so req.ip reflects the client address used by the rate limiter,
+// rather than grouping every visitor under the proxy's address.
+if (process.env.RENDER) {
+  app.set("trust proxy", 1);
+}
+
 app.disable("x-powered-by");
 app.use(cors({ origin: origins, credentials: true }));
 app.use(cookieParser());
