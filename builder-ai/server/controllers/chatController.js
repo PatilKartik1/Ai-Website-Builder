@@ -66,6 +66,9 @@ export async function chat(req, res) {
         );
         const validationError = validateProjectFiles(plainFiles);
         if (validationError) throw new Error(validationError);
+        if (!plainFiles["/App.js"]) {
+            throw new Error("AI revision cannot remove the required /App.js entry point.");
+        }
 
         const importValidatedFiles = await repairProjectImports(plainFiles, claimed.description);
         const finalFiles = Object.fromEntries(
