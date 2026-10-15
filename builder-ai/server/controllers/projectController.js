@@ -257,12 +257,21 @@ export async function updateProjectFiles(req, res) {
 // POST /api/projects/:id/publish
 export async function publishProject(req, res) {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    // Only publish a fully generated project. The status condition is part
+    // of the atomic update so a concurrent generation/revision cannot be
+    // accidentally published from a stale read.
     const project = await Project.findOneAndUpdate(
-        { _id: req.params.id, owner: req.user.userId },
-        { published: true },
+        { _id: req.params.id, owner: req.user.userId, status: "completed" },
+        { $set: { published: true } },
         { returnDocument: "after" }
     );
-    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (!project) {
+        const exists = await Project.exists({ _id: req.params.id, owner: req.user.userId });
+        if (!exists) return res.status(404).json({ error: "Project not found" });
+        return res.status(409).json({
+            error: "Wait for project generation or revision to finish before publishing.",
+        });
+    }
     return res.json({ success: true, published: project.published });
 }
 
