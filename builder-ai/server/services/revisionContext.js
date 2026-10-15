@@ -1,5 +1,6 @@
 const MAX_REVISION_CONTEXT_CHARS = 120_000;
 const ENTRYPOINTS = new Set(["/App.js", "/App.jsx", "/App.tsx", "/src/App.jsx", "/src/App.tsx", "/index.js", "/index.jsx", "/main.jsx", "/main.tsx", "/styles.css", "/package.json"]);
+const PRIMARY_ENTRYPOINTS = ["/App.js", "/App.jsx", "/App.tsx", "/src/App.jsx", "/src/App.tsx", "/index.js", "/index.jsx", "/main.jsx", "/main.tsx"];
 const STOP_WORDS = new Set([
     "the", "and", "for", "with", "from", "this", "that", "make", "change", "update",
     "please", "into", "have", "has", "its", "are", "was", "were", "you", "your",
@@ -39,21 +40,25 @@ function resolveImport(fromPath, specifier, filePaths) {
 
 /**
  * Select a focused set of source files for a revision prompt. Small projects
- * keep their full context. Large projects prioritize explicit path mentions,
- * entry points, prompt/path keyword matches, and imported dependencies.
+ * keep their full context. Large projects prioritize explicitly named files,
+ * then their dependencies, app entry points, and other prompt-relevant files.
  */
 export function selectRelevantFiles(prompt, files, maxChars = MAX_REVISION_CONTEXT_CHARS) {
     const entries = Object.entries(files || {}).filter(([, content]) => typeof content === "string");
     const totalChars = entries.reduce((sum, [, content]) => sum + content.length, 0);
     if (totalChars <= maxChars) return Object.fromEntries(entries);
 
+    const safeMaxChars = Number.isFinite(maxChars) && maxChars > 0
+        ? Math.floor(maxChars)
+        : MAX_REVISION_CONTEXT_CHARS;
     const filePaths = new Set(entries.map(([path]) => path));
     const promptLower = String(prompt || "").toLowerCase();
     const promptWords = new Set(words(prompt).filter((word) => !STOP_WORDS.has(word)));
     const ranked = entries.map(([path, content], index) => {
         const lowerPath = path.toLowerCase();
         let score = ENTRYPOINTS.has(path) ? 5 : 0;
-        if (promptLower.includes(path.toLowerCase())) score += 1000;
+        const explicitlyMentioned = promptLower.includes(lowerPath);
+        if (explicitlyMentioned) score += 1000;
         const pathWords = new Set(words(path));
         for (const word of promptWords) {
             if (pathWords.has(word)) score += 12;
@@ -65,42 +70,63 @@ export function selectRelevantFiles(prompt, files, maxChars = MAX_REVISION_CONTE
         }
         score += Math.min(overlap, 12);
         if (/\.(css|scss|sass|less)$/.test(path) && /\b(style|styling|color|colour|font|spacing|layout|theme|background|border|css|responsive)\b/i.test(prompt)) score += 15;
-        if (/\b(delete|remove|rename)\b/i.test(prompt) && promptLower.includes(lowerPath)) score += 50;
-        return { path, content, score, index };
+        if (/\b(delete|remove|rename)\b/i.test(prompt) && explicitlyMentioned) score += 50;
+        return { path, content, score, explicitlyMentioned, index };
     }).sort((a, b) => b.score - a.score || a.index - b.index);
 
+    const byPath = new Map(ranked.map((entry) => [entry.path, entry]));
     const selected = new Map();
     let usedChars = 0;
+
     const add = (entry) => {
         if (!entry || selected.has(entry.path)) return false;
-        if (usedChars + entry.content.length > maxChars) return false;
+        if (usedChars + entry.content.length > safeMaxChars) return false;
         selected.set(entry.path, entry.content);
         usedChars += entry.content.length;
         return true;
     };
 
-    // Always reserve space for core app/config files when available.
-    for (const path of ENTRYPOINTS) {
-        const entry = ranked.find((item) => item.path === path);
-        if (entry) add(entry);
-    }
-
-    for (const entry of ranked) {
-        if (entry.score > 0) add(entry);
-    }
-
-    // Include directly imported local dependencies for every selected file.
-    // Iterate to a fixed point so common component -> helper -> style chains fit.
-    let changed = true;
-    while (changed) {
-        changed = false;
-        for (const [fromPath, content] of [...selected.entries()]) {
-            for (const specifier of localImports(content)) {
-                const target = resolveImport(fromPath, specifier, filePaths);
-                const targetEntry = target ? ranked.find((item) => item.path === target) : null;
-                if (targetEntry && add(targetEntry)) changed = true;
+    // Add a candidate and its import chain together. Doing this before filling
+    // the budget with lower-priority files prevents dependencies from being
+    // crowded out by unrelated keyword matches.
+    const addWithDependencies = (initialEntry) => {
+        const queue = [initialEntry];
+        const visited = new Set();
+        while (queue.length > 0) {
+            const entry = queue.shift();
+            if (!entry || visited.has(entry.path)) continue;
+            visited.add(entry.path);
+            add(entry);
+            for (const specifier of localImports(entry.content)) {
+                const target = resolveImport(entry.path, specifier, filePaths);
+                const dependency = target ? byPath.get(target) : null;
+                if (dependency && !visited.has(dependency.path) && !selected.has(dependency.path)) {
+                    queue.push(dependency);
+                }
             }
         }
+    };
+
+    // Explicitly named files are the strongest signal and must not be crowded
+    // out by generic entrypoint reservations.
+    for (const entry of ranked) {
+        if (entry.explicitlyMentioned) addWithDependencies(entry);
+    }
+
+    // Keep the app's main execution path available where the budget permits.
+    for (const path of PRIMARY_ENTRYPOINTS) {
+        const entry = byPath.get(path);
+        if (entry) addWithDependencies(entry);
+    }
+
+    // Include remaining core configuration/style files, then other relevant
+    // files in score order, expanding dependencies as each candidate is added.
+    for (const path of ENTRYPOINTS) {
+        const entry = byPath.get(path);
+        if (entry) addWithDependencies(entry);
+    }
+    for (const entry of ranked) {
+        if (entry.score > 0) addWithDependencies(entry);
     }
 
     // If keyword scoring found nothing useful, include the smallest files that
