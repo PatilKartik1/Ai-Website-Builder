@@ -182,11 +182,11 @@ export async function reviseProject(prompt, manifest, relevantFiles, recentMessa
     }
     contextParts.push("```");
 
-    if(Object.keys(relevantFiles).length > 0){
-        contextParts.push("\n## File Contents (for reference)");
-        for (const [path, content] of Object.entries(relevantFiles)) {
-        contextParts.push(`\n### ${path}\n\`\`\`\n${content}\n\`\`\``)
-    }
+    if (Object.keys(contextFiles).length > 0) {
+        contextParts.push("\n## File Contents (focused context for this revision)");
+        for (const [path, content] of Object.entries(contextFiles)) {
+            contextParts.push(`\n### ${path}\n\`\`\`\n${content}\n\`\`\``);
+        }
     }
 
     if(recentMessages.length > 0){
