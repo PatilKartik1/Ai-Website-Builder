@@ -7,15 +7,21 @@ if (!JWT_SECRET || JWT_SECRET.trim().length < 32) {
     throw new Error("JWT_SECRET must be configured and contain at least 32 characters.");
 }
 
-// Helper to set cookie
+// Vercel and Render deployments use different sites, so production session
+// cookies must allow credentialed cross-site API requests. Browsers require
+// SameSite=None cookies to also be Secure. Local development stays on Lax.
+const sessionCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+};
+
 const setSessionCookie = (res, payload) => {
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
     res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        ...sessionCookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/",
     });
 };
 
@@ -90,11 +96,8 @@ export async function login(req, res) {
 
 export async function logout(_req, res) {
     res.cookie("token", "", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        ...sessionCookieOptions,
         maxAge: 0,
-        path: "/",
     });
     return res.json({ success: true });
 }
