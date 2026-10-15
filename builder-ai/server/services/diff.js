@@ -60,6 +60,10 @@ export function applyOperations(currentFiles, operations) {
 
             switch (op.op) {
                 case "create": {
+                    if (files[op.path]) {
+                        errors.push(`create ${op.path}: file already exists; use update instead`);
+                        break;
+                    }
                     if (typeof op.content !== "string" || !op.content) {
                         errors.push(`create ${op.path}: missing content`);
                         break;
@@ -91,6 +95,10 @@ export function applyOperations(currentFiles, operations) {
                     const newContent = searchReplace(existing.content, op.search, op.replace);
                     if (newContent === null) {
                         errors.push(`update ${op.path}: search string not found`);
+                        break;
+                    }
+                    if (newContent === existing.content) {
+                        errors.push(`update ${op.path}: operation would not change the file`);
                         break;
                     }
                     if (newContent.length > MAX_FILE_CHARS) {
@@ -173,9 +181,22 @@ function searchReplace(content, search, replace) {
  * If any operation fails, throw and return no partial file set for persistence.
  */
 export function applyOperationsStrict(currentFiles, operations) {
+    if (!Array.isArray(operations) || operations.length === 0) {
+        throw new Error("AI revision returned no file operations.");
+    }
+
     const result = applyOperations(currentFiles, operations);
     if (result.errors.length > 0) {
         throw new Error(`AI file operations were not applied completely: ${result.errors.join("; ")}`);
     }
+
+    const changed = Object.keys(currentFiles || {}).some((path) => {
+        return !result.files[path] || result.files[path].content !== currentFiles[path].content;
+    }) || Object.keys(result.files || {}).some((path) => !currentFiles?.[path]);
+
+    if (!changed) {
+        throw new Error("AI revision completed without changing any project files.");
+    }
+
     return result;
 }
