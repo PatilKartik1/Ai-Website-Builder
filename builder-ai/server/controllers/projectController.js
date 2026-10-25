@@ -209,7 +209,9 @@ export async function updateProjectFiles(req, res) {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
     const ownerFilter = { _id: req.params.id, owner: req.user.userId };
-    const existing = await Project.findOne(ownerFilter, { _id: 1, status: 1, filesRevision: 1 });
+    const existing = await Project.findOne(ownerFilter, {
+        _id: 1, status: 1, filesRevision: 1, version: 1, files: 1, history: 1,
+    });
     if (!existing) return res.status(404).json({ error: "Project not found" });
     if (existing.status !== "completed") {
         return res.status(409).json({ error: "This project is busy. Wait for the current operation to finish before saving files." });
@@ -220,6 +222,22 @@ export async function updateProjectFiles(req, res) {
         newFiles[path] = { content, hash: hashContent(content) };
     }
 
+    // Manual editor saves are real project versions too. Preserve the previous
+    // snapshot and the edited snapshot so rollback includes changes made in Code.
+    const nextVersion = (existing.version ?? 0) + 1;
+    let nextHistory = saveHistorySnapshot(
+        existing.history,
+        existing.version ?? 0,
+        existing.files || {},
+        "Before manual file edit"
+    );
+    nextHistory = saveHistorySnapshot(
+        nextHistory,
+        nextVersion,
+        newFiles,
+        "Manual file edit"
+    );
+
     // Compare-and-swap: only one writer can save against a given revision.
     // The $exists branch supports documents created before filesRevision existed.
     const revisionFilter = expectedFilesRevision === 0
@@ -227,7 +245,10 @@ export async function updateProjectFiles(req, res) {
         : { filesRevision: expectedFilesRevision };
     const project = await Project.findOneAndUpdate(
         { ...ownerFilter, status: "completed", ...revisionFilter },
-        { $set: { files: newFiles }, $inc: { filesRevision: 1 } },
+        {
+            $set: { files: newFiles, history: nextHistory, version: nextVersion },
+            $inc: { filesRevision: 1 },
+        },
         { new: true, runValidators: true }
     );
 
@@ -257,12 +278,21 @@ export async function updateProjectFiles(req, res) {
 // POST /api/projects/:id/publish
 export async function publishProject(req, res) {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    // Only publish a fully generated project. The status condition is part
+    // of the atomic update so a concurrent generation/revision cannot be
+    // accidentally published from a stale read.
     const project = await Project.findOneAndUpdate(
-        { _id: req.params.id, owner: req.user.userId },
-        { published: true },
+        { _id: req.params.id, owner: req.user.userId, status: "completed" },
+        { $set: { published: true } },
         { returnDocument: "after" }
     );
-    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (!project) {
+        const exists = await Project.exists({ _id: req.params.id, owner: req.user.userId });
+        if (!exists) return res.status(404).json({ error: "Project not found" });
+        return res.status(409).json({
+            error: "Wait for project generation or revision to finish before publishing.",
+        });
+    }
     return res.json({ success: true, published: project.published });
 }
 
