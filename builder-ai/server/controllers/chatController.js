@@ -58,8 +58,40 @@ export async function chat(req, res) {
             `[AI] Revising project ${claimed._id}: "${prompt.trim().slice(0, 80)}..." (${manifest.length} files)`
         );
 
-        const result = await reviseProject(prompt.trim(), manifest, relevantFiles, recentMessages);
-        const { files: updatedFiles, applied, errors } = applyOperationsStrict(claimed.files, result.operations);
+        let result = await reviseProject(prompt.trim(), manifest, relevantFiles, recentMessages);
+        let appliedResult;
+
+        try {
+            appliedResult = applyOperationsStrict(claimed.files, result.operations);
+        } catch (revisionError) {
+            // A model-generated search/replace patch can fail even when the file is
+            // present in context. Retry once with the exact failure and require full
+            // updated contents for affected files instead of another fragile patch.
+            const message = revisionError instanceof Error ? revisionError.message : String(revisionError);
+            if (!message.includes("search string not found")) throw revisionError;
+
+            const failedPaths = [...message.matchAll(/update (\/[^:]+): search string not found/g)]
+                .map((match) => match[1]);
+            const uniqueFailedPaths = [...new Set(failedPaths)];
+            if (uniqueFailedPaths.length === 0) throw revisionError;
+
+            console.warn(
+                `[AI] Retrying revision after search mismatch for: ${uniqueFailedPaths.join(", ")}`
+            );
+            const retryPrompt = [
+                prompt.trim(),
+                "",
+                "Your previous edit failed because its search text did not match the current file exactly.",
+                `Retry only the affected files: ${uniqueFailedPaths.join(", ")}.`,
+                "For each affected existing file, return an update operation with the COMPLETE updated file in the content field.",
+                "Do not use search/replace for these files. Preserve all unrelated code and apply the requested change.",
+            ].join("\n");
+
+            result = await reviseProject(retryPrompt, manifest, relevantFiles, recentMessages);
+            appliedResult = applyOperationsStrict(claimed.files, result.operations);
+        }
+
+        const { files: updatedFiles, applied, errors } = appliedResult;
 
         const plainFiles = Object.fromEntries(
             Object.entries(updatedFiles).map(([path, entry]) => [path, entry.content])
