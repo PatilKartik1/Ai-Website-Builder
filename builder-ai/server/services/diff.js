@@ -87,15 +87,23 @@ export function applyOperations(currentFiles, operations) {
                         errors.push(`update ${op.path}: file not found`);
                         break;
                     }
-                    if (typeof op.search !== "string" || !op.search || typeof op.replace !== "string") {
-                        errors.push(`update ${op.path}: missing search/replace`);
-                        break;
-                    }
+                    // Prefer a complete replacement when supplied. This avoids brittle
+                    // search/replace failures when the model's copied snippet differs
+                    // slightly in whitespace or punctuation.
+                    let newContent;
+                    if (typeof op.content === "string") {
+                        newContent = op.content;
+                    } else {
+                        if (typeof op.search !== "string" || !op.search || typeof op.replace !== "string") {
+                            errors.push(`update ${op.path}: missing full content or search/replace`);
+                            break;
+                        }
 
-                    const newContent = searchReplace(existing.content, op.search, op.replace);
-                    if (newContent === null) {
-                        errors.push(`update ${op.path}: search string not found`);
-                        break;
+                        newContent = searchReplace(existing.content, op.search, op.replace);
+                        if (newContent === null) {
+                            errors.push(`update ${op.path}: search string not found`);
+                            break;
+                        }
                     }
                     if (newContent === existing.content) {
                         errors.push(`update ${op.path}: operation would not change the file`);
