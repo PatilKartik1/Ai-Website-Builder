@@ -219,6 +219,7 @@ You must respond with a valid JSON object of this exact shape:
 {
   "operations": [
     { "op": "create", "path": "/path", "content": "full file content" },
+    { "op": "update", "path": "/path", "content": "complete updated file content" },
     { "op": "update", "path": "/path", "search": "exact old code", "replace": "new code" },
     { "op": "delete", "path": "/path" }
   ],
@@ -231,10 +232,11 @@ Operation types:
 - "delete": Remove a file.
 
 Critical rules for update operations:
-- The search string must be a verbatim copy of the existing code, including whitespace and indentation.
-- Keep search blocks as small as possible while remaining unique.
+- PREFERRED: for files whose complete contents are included in the context, return an update operation with "content" containing the complete updated file. This avoids fragile search/replace mismatches.
+- Preserve all existing functionality and unrelated content when returning a complete updated file.
+- Only update files whose full contents are included in the context. The manifest alone is not enough to reconstruct a file.
+- Use search/replace only when a small, targeted change is safer than returning the complete file. If you use it, the search string must be a verbatim copy of the existing code, including whitespace and indentation, and should be as small as possible while unique.
 - If you need to see a file's content to make changes, say so in description and do not invent edits.
-- Prefer targeted search/replace over recreating entire files.
 
 Be minimal: only touch files that need to change.`;
 

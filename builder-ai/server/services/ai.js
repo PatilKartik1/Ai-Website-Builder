@@ -226,18 +226,25 @@ export async function reviseProject(prompt, manifest, relevantFiles, recentMessa
             if (op.search) op.search = normalizeContent(op.search);
             if (op.replace) op.replace = normalizeContent(op.replace);
 
-            if (op.op === "create" && op.content){
+            if (op.op === "create" && op.content) {
                 const validation = validateRevisionContent(op.content, op.path, "create");
                 op.content = validation.content;
-                if(validation.warnings.length > 0){
+                if (validation.warnings.length > 0) {
                     console.log(`[Validator] Revision Create adjustments for ${op.path}:\n  - ${validation.warnings.join("\n  - ")}`);
                 }
-            }else if(op.op === "update" && op.replace){
-                 const validation = validateRevisionContent(op.replace, op.path, "update");
-                 op.replace = validation.content;
-                 if(validation.warnings.length > 0){
+            } else if (op.op === "update" && typeof op.content === "string") {
+                // Full-file updates receive the same complete-code validation as creates.
+                const validation = validateRevisionContent(op.content, op.path, "create");
+                op.content = validation.content;
+                if (validation.warnings.length > 0) {
+                    console.log(`[Validator] Revision Full Update adjustments for ${op.path}:\n  - ${validation.warnings.join("\n  - ")}`);
+                }
+            } else if (op.op === "update" && op.replace) {
+                const validation = validateRevisionContent(op.replace, op.path, "update");
+                op.replace = validation.content;
+                if (validation.warnings.length > 0) {
                     console.log(`[Validator] Revision Update adjustments for ${op.path}:\n  - ${validation.warnings.join("\n  - ")}`);
-                 }
+                }
             }
             return op;
         })
