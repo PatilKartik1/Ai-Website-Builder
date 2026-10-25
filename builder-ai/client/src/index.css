@@ -1,32 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 
 /* ─── Design Tokens ─────────────────── */
 :root {
-  --bg:          #111116;
-  --surface:     #18181e;
-  --surface-2:   #1f1f28;
-  --surface-3:   #27273200;
-  --border:      rgba(255,255,255,0.07);
-  --border-md:   rgba(255,255,255,0.11);
-  --border-hi:   rgba(255,255,255,0.18);
-  --text-1:      #e2e2ee;
-  --text-2:      #7a7a96;
-  --text-3:      #46465e;
-  --accent:      #8b83f7;
-  --accent-dim:  rgba(139,131,247,0.12);
-  --accent-glow: rgba(139,131,247,0.22);
+  --bg: #111116;
+  --surface: #18181e;
+  --surface-2: #1f1f28;
+  --surface-3: #27273200;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-md: rgba(255, 255, 255, 0.11);
+  --border-hi: rgba(255, 255, 255, 0.18);
+  --text-1: #e2e2ee;
+  --text-2: #7a7a96;
+  --text-3: #46465e;
+  --accent: #8b83f7;
+  --accent-dim: rgba(139, 131, 247, 0.12);
+  --accent-glow: rgba(139, 131, 247, 0.22);
 }
 
 /* ─── Base ────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-html { color-scheme: dark; }
+html {
+  color-scheme: dark;
+}
 
 body {
   background-color: var(--bg);
@@ -38,15 +44,28 @@ body {
 }
 
 /* Scrollbars */
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
-
-
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
 /* ─── Dot Loader ─────────────────────── */
 .dot-loader {
@@ -62,14 +81,25 @@ body {
   opacity: 0.5;
   animation: dotPulse 1.4s ease-in-out infinite;
 }
-.dot-loader span:nth-child(2) { animation-delay: 0.2s; }
-.dot-loader span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotPulse {
-  0%, 80%, 100% { opacity: 0.15; transform: scale(0.8); }
-  40%           { opacity: 0.85; transform: scale(1); }
+.dot-loader span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dot-loader span:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
+@keyframes dotPulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
 
 /* Sandpack overrides */
 .sp-wrapper {
@@ -99,8 +129,12 @@ body {
 
 /* Marquee styles */
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -114,8 +148,20 @@ body {
 }
 
 .masked-marquee {
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
 }
 
 /* ─── Workspace polish ───────────────── */
