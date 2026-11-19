@@ -110,6 +110,27 @@ export function validateAndFixCode(code, filePath, context) {
         warnings.push(`${filePath}: Added missing React import`);
     }
 
+    // 8b. Fix string `style="..."` → `style={{ ... }}` in JSX
+    const stringStyleRegex = /(<[a-zA-Z][^>]*?)\bstyle="([^"]*)"/g;
+    if (stringStyleRegex.test(code)) {
+        code = code.replace(/(<[a-zA-Z][^>]*?)\bstyle="([^"]*)"/g, (match, prefix, styleStr) => {
+            try {
+                const rules = styleStr.split(";").map((r) => r.trim()).filter(Boolean);
+                const objEntries = rules.map((rule) => {
+                    const [prop, ...valParts] = rule.split(":");
+                    if (!prop || valParts.length === 0) return "";
+                    const camelProp = prop.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+                    const val = valParts.join(":").trim();
+                    return `${camelProp}: '${val.replace(/'/g, "\\'")}'`;
+                }).filter(Boolean);
+                return `${prefix}style={{ ${objEntries.join(", ")} }}`;
+            } catch {
+                return prefix;
+            }
+        });
+        warnings.push(`${filePath}: Converted string style="..." to style={{ ... }}`);
+    }
+
     // 9. Fix import paths that point to incorrect folders/paths compared to what was planned
     if (context?.allPlannedFiles) {
         const fixResult = fixImportPaths(code, filePath, context.allPlannedFiles);
@@ -154,6 +175,27 @@ export function validateRevisionContent(content, filePath, op) {
             content = content.replace(new RegExp(`<${tag}(\\s[^>]*?)?(?<!/)>`, "gi"), (match, attrs) => `<${tag}${attrs || ""} />`);
             warnings.push(`${filePath}: Self-closed <${tag}> in replacement`);
         }
+    }
+
+    // Fix string style="..." → style={{ ... }}
+    const stringStyleRegex = /(<[a-zA-Z][^>]*?)\bstyle="([^"]*)"/g;
+    if (stringStyleRegex.test(content)) {
+        content = content.replace(/(<[a-zA-Z][^>]*?)\bstyle="([^"]*)"/g, (match, prefix, styleStr) => {
+            try {
+                const rules = styleStr.split(";").map((r) => r.trim()).filter(Boolean);
+                const objEntries = rules.map((rule) => {
+                    const [prop, ...valParts] = rule.split(":");
+                    if (!prop || valParts.length === 0) return "";
+                    const camelProp = prop.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+                    const val = valParts.join(":").trim();
+                    return `${camelProp}: '${val.replace(/'/g, "\\'")}'`;
+                }).filter(Boolean);
+                return `${prefix}style={{ ${objEntries.join(", ")} }}`;
+            } catch {
+                return prefix;
+            }
+        });
+        warnings.push(`${filePath}: Converted string style="..." in replacement`);
     }
 
     return { content, warnings };

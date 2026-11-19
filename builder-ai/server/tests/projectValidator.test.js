@@ -55,7 +55,7 @@ test("ignores missing imports inside line and block comments", () => {
 
 test("ignores import-like text inside ordinary strings", () => {
     assert.equal(validateLocalImports({
-        "/App.js": \`const example = "import Missing from './missing.js'";\`,
+        "/App.js": `const example = "import Missing from './missing.js'";`,
     }), null);
 });
 

@@ -10,19 +10,46 @@ import { validateLocalImports } from "./projectValidator.js";
 import { selectRelevantFiles, MAX_REVISION_CONTEXT_CHARS_LIMIT } from "./revisionContext.js";
 
 // --- OpenRouter Model Client Setup ---
-const MODEL = process.env.OPENROUTER_MODEL || "openrouter/free";
 const requestedConcurrency = Number.parseInt(process.env.AI_MAX_CONCURRENCY || "3", 10);
 const MAX_CONCURRENCY = Number.isInteger(requestedConcurrency) && requestedConcurrency >= 1
     ? Math.min(requestedConcurrency, 4)
     : 3;
 
-const openrouter = createOpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
-    apiKey: process.env.OPENROUTER_API_KEY,
-    compatibility: "compatible",
-})
+let cachedModel = null;
+let lastKey = null;
+let lastModelName = null;
 
-const model = openrouter(MODEL);
+function getModel() {
+    const rawKey = process.env.OPENROUTER_API_KEY || "";
+    const cleanKey = rawKey.replace(/^["']|["']$/g, "").trim();
+
+    if (!cleanKey) {
+        throw new Error("OPENROUTER_API_KEY is missing or empty in environment variables.");
+    }
+
+    const rawModel = process.env.OPENROUTER_MODEL || "openrouter/free";
+    const cleanModel = rawModel.replace(/^["']|["']$/g, "").trim() || "openrouter/free";
+
+    if (cachedModel && lastKey === cleanKey && lastModelName === cleanModel) {
+        return cachedModel;
+    }
+
+    const openrouter = createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: cleanKey,
+        headers: {
+            Authorization: `Bearer ${cleanKey}`,
+            "HTTP-Referer": "https://ai-website-builder.local",
+            "X-Title": "AI Website Builder",
+        },
+        compatibility: "compatible",
+    });
+
+    lastKey = cleanKey;
+    lastModelName = cleanModel;
+    cachedModel = openrouter(cleanModel);
+    return cachedModel;
+}
 
 // Generate a single file's code
 async function generateSingleFile(file, allFiles, prompt, alreadyGeneratedFiles){
@@ -32,7 +59,7 @@ async function generateSingleFile(file, allFiles, prompt, alreadyGeneratedFiles)
 
      console.log(`[AI] Creating file: ${file.path}...`);
      const { object } = await generateObject({
-        model,
+        model: getModel(),
         schema: FileCodeSchema,
         system,
         prompt: userMsg,
@@ -63,7 +90,7 @@ export async function generateProject(prompt, callbacks){
     // Phase 1: Plan
     console.log(`[AI] Phase 1: Planning file structure for: "${prompt.slice(0,80)}..."`);
     const { object: plan } = await generateObject({
-        model,
+        model: getModel(),
         schema: FilePlanSchema,
         system: FILE_PLAN_SYSTEM,
         prompt: `Plan a React website for: ${prompt}`,
@@ -202,7 +229,7 @@ export async function reviseProject(prompt, manifest, relevantFiles, recentMessa
     console.log("[AI] Revising project...");
 
     const { object: rawParsed } = await generateObject({
-        model,
+        model: getModel(),
         schema: RevisionResultSchema,
         system: REVISE_SYSTEM,
         prompt: contextParts.join("\n"),
