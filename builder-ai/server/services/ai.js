@@ -19,6 +19,7 @@ const MAX_CONCURRENCY = Number.isInteger(requestedConcurrency) && requestedConcu
 const openrouter = createOpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
+    compatibility: "compatible",
 })
 
 const model = openrouter(MODEL);

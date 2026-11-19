@@ -134,13 +134,14 @@ async function runBackgroundGeneration(projectId, prompt) {
         await project.save();
     } catch (err) {
         console.error(`[Background AI] Fatal generation error for project ${projectId}:`, err);
+        const detailedError = err?.message || "Project generation failed. Please try again.";
         await Project.findByIdAndUpdate(projectId, {
             status: "failed",
-            error: "Project generation failed. Please try again.",
+            error: detailedError,
             $push: {
                 messages: {
                     role: "assistant",
-                    content: "Project generation failed. Please try again.",
+                    content: `Project generation failed: ${detailedError}`,
                     timestamp: new Date(),
                 },
             },

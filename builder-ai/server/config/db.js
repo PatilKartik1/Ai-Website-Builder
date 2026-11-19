@@ -11,14 +11,26 @@ export async function connectToDatabase() {
     console.log("Successfully connected to MongoDB.");
   });
 
+  mongoose.connection.on("disconnected", () => {
+    console.log("MongoDB disconnected.");
+  });
+
+  mongoose.connection.on("error", (err) => {
+    console.error("MongoDB connection error:", err.message);
+  });
+
   try {
+    console.log("Connecting to MongoDB Atlas...");
+
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 15000,
+      family: 4,
     });
+
+    console.log("MongoDB connection established!");
   } catch (err) {
-    console.error("========== MONGODB ERROR ==========");
-    console.error(err);
-    console.error("===================================");
+    console.error("MongoDB connection failed:", err);
     throw err;
   }
 }
